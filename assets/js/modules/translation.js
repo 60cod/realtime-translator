@@ -20,10 +20,10 @@ class TranslationModule {
     }
 
     /**
-     * API 키 상태 확인
+     * API 키 상태 확인 (Netlify Function 사용시 항상 true)
      */
     hasApiKey() {
-        return !!this.apiKey;
+        return true; // Netlify Function이 서버에서 API 키 관리
     }
 
     /**
@@ -34,13 +34,9 @@ class TranslationModule {
     }
 
     /**
-     * DeepL API로 텍스트 번역
+     * Netlify Function을 통한 텍스트 번역
      */
     async translateText(text, targetLang = 'KO') {
-        if (!this.apiKey) {
-            throw new Error('API 키가 설정되지 않았습니다.');
-        }
-
         if (!text || !text.trim()) {
             throw new Error('번역할 텍스트가 없습니다.');
         }
@@ -48,10 +44,9 @@ class TranslationModule {
         this.isTranslating = true;
 
         try {
-            const response = await fetch('https://api-free.deepl.com/v2/translate', {
+            const response = await fetch('https://60-realtime-translator.netlify.app/.netlify/functions/deepl-translate', {
                 method: 'POST',
                 headers: {
-                    'Authorization': `DeepL-Auth-Key ${this.apiKey}`,
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({
@@ -62,7 +57,7 @@ class TranslationModule {
 
             if (!response.ok) {
                 const errorData = await response.json();
-                throw new Error(`DeepL API 오류: ${response.status} - ${errorData.message || 'API 호출 실패'}`);
+                throw new Error(`번역 오류: ${response.status} - ${errorData.error || 'API 호출 실패'}`);
             }
 
             const data = await response.json();
