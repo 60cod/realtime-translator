@@ -1,0 +1,665 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>실시간 번역 기록</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .recording {
+            animation: pulse 1.5s infinite;
+        }
+        .disabled-btn {
+            background-color: #6b7280 !important;
+            cursor: not-allowed !important;
+        }
+        .disabled-btn:hover {
+            background-color: #6b7280 !important;
+        }
+        .status-blinking {
+            animation: blink 2s infinite;
+        }
+        @keyframes blink {
+            0%, 50% { opacity: 1; }
+            51%, 100% { opacity: 0.5; }
+        }
+        .result-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 2px;
+            background-color: #374151;
+            border-radius: 0.375rem;
+            margin-bottom: 0.5rem;
+        }
+        .result-text {
+            flex: 1;
+            padding: 2px 4px;
+        }
+        .copy-btn {
+            background-color: #4b5563;
+            color: #d1d5db;
+            border: none;
+            padding: 2px 8px;
+            border-radius: 0.25rem;
+            cursor: pointer;
+            font-size: 12px;
+            margin: 0 4px;
+            transition: background-color 0.2s;
+        }
+        .copy-btn:hover {
+            background-color: #6b7280;
+        }
+        .copy-btn:active {
+            background-color: #374151;
+        }
+        .popup-btn {
+            position: absolute;
+            background-color: #3b82f6;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+            z-index: 1000;
+            transition: all 0.2s;
+            display: none;
+        }
+        .popup-btn:hover {
+            background-color: #2563eb;
+            transform: scale(1.05);
+        }
+        .popup-btn:active {
+            transform: scale(0.95);
+        }
+    </style>
+</head>
+<body class="bg-gray-900 text-gray-100 min-h-screen p-4 font-mono">
+    <div class="max-w-4xl mx-auto">
+        <header class="relative text-center mb-8">
+            <h1 class="text-3xl font-bold text-white">간단한 영어 음성 인식기</h1>
+            <p class="text-gray-400 mt-2">영어로 말하면 텍스트로 변환됩니다.</p>
+            
+            <!-- 설정 버튼 -->
+            <div class="absolute top-0 right-0">
+                <button id="settingsBtn" class="bg-gray-700 hover:bg-gray-600 text-white p-1 rounded-lg transition duration-300">
+                    <span class="text-lg m-1">⚙️</span>
+                </button>
+                
+                <!-- 드롭다운 메뉴 -->
+                <div id="settingsDropdown" class="hidden absolute top-full right-0 mt-2 w-96 bg-gray-800 rounded-lg shadow-xl border border-gray-600 z-50">
+                    <!-- API 키 설정 섹션 -->
+                    <div class="p-4 border-b border-gray-700">
+                        <h3 class="text-white font-semibold mb-3 flex items-center gap-2">
+                            <span>🔑</span>
+                            <span>API 키 설정</span>
+                            <span id="dropdownApiStatus" class="text-sm text-gray-400">미설정</span>
+                        </h3>
+                        <div class="space-y-3">
+                            <div class="flex gap-2">
+                                <input type="password" id="dropdownApiKey" class="flex-1 bg-gray-700 text-white border border-gray-600 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm" placeholder="DeepL API 키를 입력하세요">
+                                <button id="dropdownSaveKeyBtn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-md transition duration-300 text-sm whitespace-nowrap">
+                                    저장
+                                </button>
+                            </div>
+                            <div class="text-xs text-gray-400 text-left">
+                                ※ DeepL API 키가 설정되어야 번역 기능을 사용할 수 있습니다.
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 디버그 정보 섹션 -->
+                    <div class="p-4">
+                        <h3 class="text-white font-semibold mb-3 flex items-center gap-2">
+                            <span>🔊</span>
+                            <span>음성 인식 설정</span>
+                            <span id="dropdownDebugInfoStatus" class="text-sm text-gray-400">미설정</span>
+                        </h3>
+                        <div id="dropdownDebugInfo" class="text-sm text-gray-300 text-left">
+                            브라우저 지원 상태를 확인 중...
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- 컨트롤 버튼들 -->
+        <div class="flex justify-center gap-4 mb-6" style="line-height: 15px;">
+            <button id="startBtn" class="bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-4 rounded-lg transition duration-300">
+                Start
+            </button>
+            <button id="stopBtn" class="bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-4 rounded-lg transition duration-300" disabled>
+                Stop
+            </button>
+            <button id="clearBtn" class="bg-yellow-600 hover:bg-yellow-700 text-white font-bold py-3 px-4 rounded-lg transition duration-300">
+                Reset
+            </button>
+        </div>
+
+
+        <!-- 상태 표시 -->
+        <div id="status" class="text-center text-sm mb-6">
+            대기 중...
+        </div>
+
+        <!-- 인식된 텍스트 표시 영역 -->
+        <div class="bg-gray-800 rounded-lg p-6 shadow-lg">
+            <h2 class="text-xl font-semibold mb-4 text-white">인식된 텍스트</h2>
+            
+            <!-- 현재 인식 중인 텍스트 -->
+            <div id="interimResults" class="text-gray-400 italic mb-4 min-h-8">
+                <!-- 현재 인식 중인 임시 텍스트가 여기에 표시됩니다 -->
+            </div>
+            
+            <!-- 최종 결과 (스크롤 영역) -->
+            <div id="finalResults" class="space-y-2 border-t border-gray-600 pt-4 overflow-y-auto" style="height: 600px;">
+                <!-- 최종 인식 결과들이 여기에 표시됩니다 -->
+            </div>
+        </div>
+
+        <!-- 드래그 팝업 버튼 -->
+        <button id="popupBtn" class="popup-btn">번역하기</button>
+
+
+        <!-- 선택된 텍스트 표시 영역 -->
+        <div id="selectedTextArea" class="mt-4 bg-gray-800 rounded-lg p-4 hidden">
+            <h3 class="text-lg font-semibold mb-2 text-white">선택된 텍스트</h3>
+            <div class="result-item mb-4 border-l-4 rounded">
+                <div id="selectedTextContent" class="p-2">
+                    <!-- 선택된 텍스트가 여기에 표시됩니다 -->
+                </div>
+                <button id="copySelectedBtn" class="copy-btn">복사</button>
+            </div>
+            
+            <!-- 번역 결과 영역 -->
+            <div id="translationResultArea" class="hidden">
+                <h4 class="text-md font-semibold mb-2 text-white">
+                    번역 결과
+                    <span id="translationStatus" class="text-sm font-normal text-gray-400 ml-2">
+                        <!-- 번역 상태 메시지가 여기에 표시됩니다 -->
+                    </span>
+                </h4>
+                <div id="translationResult" class="text-sm text-gray-300 p-3 bg-gray-700 rounded border-l-4 border-green-500">
+                    <!-- 번역 결과가 여기에 표시됩니다 -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // DOM 요소 참조
+            const startBtn = document.getElementById('startBtn');
+            const stopBtn = document.getElementById('stopBtn');
+            const clearBtn = document.getElementById('clearBtn');
+            const status = document.getElementById('status');
+            const finalResults = document.getElementById('finalResults');
+            const interimResults = document.getElementById('interimResults');
+            const popupBtn = document.getElementById('popupBtn');
+            const selectedTextArea = document.getElementById('selectedTextArea');
+            const selectedTextContent = document.getElementById('selectedTextContent');
+            const copySelectedBtn = document.getElementById('copySelectedBtn');
+            const translationResultArea = document.getElementById('translationResultArea');
+            const translationResult = document.getElementById('translationResult');
+            const translationStatus = document.getElementById('translationStatus');
+            
+            // 설정 드롭다운 요소들
+            const settingsBtn = document.getElementById('settingsBtn');
+            const settingsDropdown = document.getElementById('settingsDropdown');
+            const dropdownApiKey = document.getElementById('dropdownApiKey');
+            const dropdownSaveKeyBtn = document.getElementById('dropdownSaveKeyBtn');
+            const dropdownApiStatus = document.getElementById('dropdownApiStatus');
+            const dropdownDebugInfo = document.getElementById('dropdownDebugInfo');
+            const dropdownDebugInfoStatus = document.getElementById('dropdownDebugInfoStatus');
+
+            let recognition = null;
+            let isRecognizing = false;
+            let lastFinalText = ''; // 마지막으로 추가된 최종 텍스트
+            let selectedText = ''; // 선택된 텍스트 저장
+            let deepLApiKey = localStorage.getItem('deepLApiKey'); // API 키 저장
+
+            // Web Speech API 지원 확인
+            if ('webkitSpeechRecognition' in window) {
+                recognition = new webkitSpeechRecognition();
+                dropdownDebugInfo.textContent = '음성 인식이 지원됩니다.';
+                dropdownDebugInfoStatus.textContent = '설정됨';
+                dropdownDebugInfoStatus.className = 'text-sm text-green-400';
+            } else if ('SpeechRecognition' in window) {
+                recognition = new SpeechRecognition();
+                dropdownDebugInfo.textContent = '음성 인식이 지원됩니다.';
+                dropdownDebugInfoStatus.textContent = '설정됨';
+                dropdownDebugInfoStatus.className = 'text-sm text-green-400';
+            } else {
+                dropdownDebugInfo.textContent = '❌ 음성 인식이 지원되지 않습니다.';
+                dropdownDebugInfoStatus.textContent = '미설정';
+                dropdownDebugInfoStatus.className = 'text-sm text-gray-400';
+                startBtn.disabled = true;
+                status.textContent = '브라우저가 음성 인식을 지원하지 않습니다.';
+                return;
+            }
+
+            // 음성 인식 설정
+            recognition.continuous = true;        // 연속 인식
+            recognition.interimResults = true;    // 중간 결과 표시
+            recognition.lang = 'en-US';          // 영어 인식
+
+            console.log('Speech recognition initialized with settings:');
+            console.log('- continuous:', recognition.continuous);
+            console.log('- interimResults:', recognition.interimResults);
+            console.log('- lang:', recognition.lang);
+
+            // 시작 버튼
+            startBtn.addEventListener('click', () => {
+                try {
+                    recognition.start();
+                    // 즉시 버튼 비활성화 및 스타일 변경
+                    startBtn.disabled = true;
+                    startBtn.classList.add('disabled-btn');
+                } catch (error) {
+                    console.error('Failed to start recognition:', error);
+                    status.textContent = '음성 인식 시작 실패: ' + error.message;
+                    // 실패시 버튼 다시 활성화
+                    startBtn.disabled = false;
+                    startBtn.classList.remove('disabled-btn');
+                }
+            });
+
+            // 중지 버튼
+            stopBtn.addEventListener('click', () => {
+                try {
+                    recognition.stop();
+                    // 즉시 버튼 비활성화 및 스타일 변경
+                    stopBtn.disabled = true;
+                    stopBtn.classList.add('disabled-btn');
+                } catch (error) {
+                    console.error('Failed to stop recognition:', error);
+                    // 실패시 버튼 다시 활성화
+                    stopBtn.disabled = false;
+                    stopBtn.classList.remove('disabled-btn');
+                }
+            });
+
+            // 초기화 버튼
+            clearBtn.addEventListener('click', () => {
+                console.log('Clear button clicked');
+                finalResults.innerHTML = '';
+                interimResults.textContent = '';
+                lastFinalText = ''; // 마지막 텍스트도 초기화
+                hidePopupBtn(); // 팝업 버튼 숨기기
+                selectedTextArea.classList.add('hidden'); // 선택된 텍스트 영역 숨기기
+                translationResultArea.classList.add('hidden'); // 번역 결과 영역 숨기기
+                status.textContent = '초기화 완료';
+            });
+
+            // API 키 상태 업데이트 함수
+            function updateApiKeyStatus() {
+                if (deepLApiKey) {
+                    dropdownApiStatus.textContent = '설정됨';
+                    dropdownApiStatus.className = 'text-sm text-green-400';
+                } else {
+                    dropdownApiStatus.textContent = '미설정';
+                    dropdownApiStatus.className = 'text-sm text-gray-400';
+                }
+            }
+
+            // 번역 결과 영역 상태 설정 함수
+            function setTranslationResultStatus(status) {
+                // 기존 border 클래스 제거
+                translationResult.className = translationResult.className.replace(/border-l-4 border-\w+-\d+/g, '');
+                
+                if (status === 'success') {
+                    // 성공: 초록색 테두리
+                    translationResult.className += ' border-l-4 border-green-500';
+                } else if (status === 'error') {
+                    // 오류: 빨간색 테두리
+                    translationResult.className += ' border-l-4 border-red-500';
+                } else if (status === 'loading') {
+                    // 로딩: 파란색 테두리
+                    translationResult.className += ' border-l-4 border-blue-500';
+                }
+            }
+
+            // 번역 결과 영역 초기화 함수
+            function initializeTranslationResult() {
+                translationResult.textContent = '';
+                translationStatus.textContent = '';
+                setTranslationResultStatus('loading');
+            }
+
+            // API 키 관리
+            if (deepLApiKey) {
+                dropdownApiKey.value = deepLApiKey;
+            }
+            updateApiKeyStatus();
+
+            // 설정 드롭다운 토글 기능
+            settingsBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const isHidden = settingsDropdown.classList.contains('hidden');
+                
+                if (isHidden) {
+                    settingsDropdown.classList.remove('hidden');
+                } else {
+                    settingsDropdown.classList.add('hidden');
+                }
+            });
+
+            // 드롭다운 외부 클릭 시 닫기
+            document.addEventListener('click', (e) => {
+                if (!settingsDropdown.contains(e.target) && !settingsBtn.contains(e.target)) {
+                    settingsDropdown.classList.add('hidden');
+                }
+            });
+
+            // 드롭다운 내부 클릭 시 이벤트 전파 중단
+            settingsDropdown.addEventListener('click', (e) => {
+                e.stopPropagation();
+            });
+
+            // API 키 저장 기능
+            dropdownSaveKeyBtn.addEventListener('click', () => {
+                const key = dropdownApiKey.value.trim();
+                if (key) {
+                    localStorage.setItem('deepLApiKey', key);
+                    deepLApiKey = key;
+                    updateApiKeyStatus();
+                    status.textContent = 'DeepL API 키가 저장되었습니다.';
+                } else {
+                    status.textContent = 'API 키를 입력해주세요.';
+                }
+            });
+
+            // 선택된 텍스트 복사 버튼
+            copySelectedBtn.addEventListener('click', () => {
+                const text = selectedTextContent.textContent;
+                if (text) {
+                    navigator.clipboard.writeText(text).then(() => {
+                        copySelectedBtn.textContent = '완료!';
+                        setTimeout(() => {
+                            copySelectedBtn.textContent = '복사';
+                        }, 1000);
+                    }).catch(err => {
+                        console.error('복사 실패:', err);
+                        copySelectedBtn.textContent = '실패';
+                        setTimeout(() => {
+                            copySelectedBtn.textContent = '복사';
+                        }, 1000);
+                    });
+                }
+            });
+
+            // 팝업 버튼 숨기기
+            function hidePopupBtn() {
+                popupBtn.style.display = 'none';
+                selectedText = '';
+            }
+
+            // 팝업 버튼 표시 (페이지 기준 마우스 위치)
+            function showPopupBtn(pageX, pageY, text) {
+                selectedText = text;
+                popupBtn.style.display = 'block';
+                popupBtn.style.left = pageX + 'px';
+                popupBtn.style.top = (pageY - 50) + 'px'; // 마우스 위로 50px
+            }
+
+            // 선택된 텍스트 표시 및 번역
+            async function displaySelectedText(text) {
+                selectedTextContent.textContent = text;
+                selectedTextArea.classList.remove('hidden');
+                
+                // 번역 시작
+                if (deepLApiKey) {
+                    // 번역 결과 영역 초기화 및 표시
+                    translationResultArea.classList.remove('hidden');
+                    initializeTranslationResult();
+                    translationStatus.textContent = '번역 중...';
+                    
+                    const translatedText = await translateWithDeepL(text);
+                    
+                    if (translatedText) {
+                        translationResult.textContent = translatedText;
+                        setTranslationResultStatus('success');
+                        translationStatus.textContent = '완료';
+                        
+                        // 2초 후 상태 메시지 제거
+                        setTimeout(() => {
+                            translationStatus.textContent = '';
+                        }, 2000);
+                    } else {
+                        translationStatus.textContent = '';
+                        // 번역 실패 메시지와 오류 테두리는 translateWithDeepL 함수에서 설정
+                    }
+                } else {
+                    translationResultArea.classList.remove('hidden');
+                    translationResult.textContent = '[오류] DeepL API 키를 먼저 설정해주세요.';
+                    setTranslationResultStatus('error');
+                }
+            }
+
+            // DeepL API 번역 함수
+            async function translateWithDeepL(text) {
+                if (!deepLApiKey) {
+                    console.error('API 키가 설정되지 않았습니다.');
+                    translationResult.textContent = '[오류] API 키가 설정되지 않았습니다.';
+                    setTranslationResultStatus('error');
+                    return null;
+                }
+
+                try {
+                    const response = await fetch('https://api-free.deepl.com/v2/translate', {
+                        method: 'POST',
+                        headers: {
+                            'Authorization': `DeepL-Auth-Key ${deepLApiKey}`,
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            text: [text],
+                            target_lang: 'KO'
+                        })
+                    });
+
+                    if (!response.ok) {
+                        const errorData = await response.json();
+                        const errorMessage = `[번역 오류] ${response.status} - ${errorData.message || 'API 호출 실패'}`;
+                        translationResult.textContent = errorMessage;
+                        setTranslationResultStatus('error');
+                        throw new Error(errorMessage);
+                    }
+
+                    const data = await response.json();
+                    console.log('번역 응답:', data);
+                    
+                    if (data.translations && data.translations.length > 0) {
+                        return data.translations[0].text;
+                    } else {
+                        const errorMessage = '[번역 오류] 번역 결과가 없습니다.';
+                        translationResult.textContent = errorMessage;
+                        setTranslationResultStatus('error');
+                        throw new Error(errorMessage);
+                    }
+                } catch (error) {
+                    console.error('번역 오류:', error);
+                    if (!translationResult.textContent.startsWith('[')) {
+                        // 아직 오류 메시지가 설정되지 않은 경우에만 설정
+                        translationResult.textContent = `[번역 오류] ${error.message}`;
+                        setTranslationResultStatus('error');
+                    }
+                    return null;
+                }
+            }
+
+            // 복사 버튼 텍스트 제거
+            function cleanSelectedText(text) {
+                return text
+                    .replace(/복사/g, '')
+                    .replace(/완료!/g, '')
+                    .replace(/실패/g, '')
+                    .replace(/\s+/g, ' ')
+                    .trim();
+            }
+
+            // finalResults 영역에서만 드래그 감지
+            finalResults.addEventListener('mouseup', (event) => {
+                const selection = window.getSelection();
+                const selectionText = selection.toString().trim();
+                
+                if (selectionText && selectionText.length > 3) {
+                    const cleanedText = cleanSelectedText(selectionText);
+                    
+                    if (cleanedText && cleanedText.length > 3) {
+                        // 페이지 기준 마우스 위치에 팝업 버튼 표시
+                        showPopupBtn(event.pageX, event.pageY, cleanedText);
+                        console.log('선택된 텍스트:', cleanedText);
+                    }
+                }
+            });
+
+            // finalResults 영역 외부 클릭시 팝업 버튼 숨기기
+            document.addEventListener('click', (event) => {
+                if (!finalResults.contains(event.target) && event.target !== popupBtn) {
+                    hidePopupBtn();
+                    window.getSelection().removeAllRanges();
+                }
+            });
+
+            // 팝업 버튼 클릭 이벤트
+            popupBtn.addEventListener('click', () => {
+                if (selectedText) {
+                    displaySelectedText(selectedText);
+                    hidePopupBtn();
+                    window.getSelection().removeAllRanges();
+                    console.log('번역하기 버튼 클릭됨:', selectedText);
+                }
+            });
+
+            // 음성 인식 이벤트 핸들러들
+            recognition.onstart = () => {
+                isRecognizing = true;
+                status.textContent = '🎤 음성 인식 중... 영어로 말씀하세요';
+                status.classList.add('recording');
+                status.classList.add('status-blinking'); // 깜빡거리는 애니메이션 추가
+                
+                // Start 버튼 비활성화 (이미 클릭 시 처리됨)
+                startBtn.disabled = true;
+                startBtn.classList.add('disabled-btn');
+                
+                // Stop 버튼 활성화
+                stopBtn.disabled = false;
+                stopBtn.classList.remove('disabled-btn');
+            };
+
+            recognition.onend = () => {
+                isRecognizing = false;
+                status.textContent = '대기 중...';
+                status.classList.remove('recording');
+                status.classList.remove('status-blinking'); // 깜빡거리는 애니메이션 제거
+                
+                // Start 버튼 활성화
+                startBtn.disabled = false;
+                startBtn.classList.remove('disabled-btn');
+                
+                // Stop 버튼 비활성화 (이미 클릭 시 처리됨)
+                stopBtn.disabled = true;
+                stopBtn.classList.add('disabled-btn');
+            };
+
+            recognition.onerror = (event) => {
+                console.error('Recognition error:', event.error);
+                status.textContent = '오류: ' + event.error;
+                isRecognizing = false;
+                status.classList.remove('status-blinking'); // 깜빡거리는 애니메이션 제거
+                
+                // Start 버튼 활성화
+                startBtn.disabled = false;
+                startBtn.classList.remove('disabled-btn');
+                
+                // Stop 버튼 비활성화
+                stopBtn.disabled = true;
+                stopBtn.classList.add('disabled-btn');
+            };
+
+            recognition.onresult = (event) => {
+                let finalTranscript = '';
+                let interimTranscript = '';
+
+                // 모든 결과 처리
+                for (let i = 0; i < event.results.length; i++) {
+                    const transcript = event.results[i][0].transcript;
+                    const confidence = event.results[i][0].confidence;
+                    const isFinal = event.results[i].isFinal;
+
+                    // console.log(`Result ${i}: "${transcript}" (final: ${isFinal}, confidence: ${confidence})`);
+
+                    if (isFinal) {
+                        finalTranscript = transcript;
+                    } else {
+                        interimTranscript += transcript;
+                    }
+                }
+
+                // 최종 결과 표시 (중복 방지)
+                if (finalTranscript) {
+                    const trimmedText = finalTranscript.trim();
+                    const lastTrimmedText = lastFinalText.trim();
+                    
+                    // 이전 문장과 다른 경우에만 추가
+                    if (trimmedText && trimmedText !== lastTrimmedText) {
+
+                        // 결과 아이템 컨테이너 생성
+                        const resultDiv = document.createElement('div');
+                        resultDiv.className = 'result-item';
+                        
+                        // 텍스트 영역 생성
+                        const textSpan = document.createElement('span');
+                        textSpan.className = 'result-text';
+                        textSpan.textContent = trimmedText;
+                        
+                        // 복사 버튼 생성
+                        const copyBtn = document.createElement('button');
+                        copyBtn.className = 'copy-btn';
+                        copyBtn.textContent = '복사';
+                        copyBtn.onclick = () => {
+                            navigator.clipboard.writeText(trimmedText).then(() => {
+                                copyBtn.textContent = '완료!';
+                                setTimeout(() => {
+                                    copyBtn.textContent = '복사';
+                                }, 1000);
+                            }).catch(err => {
+                                console.error('복사 실패:', err);
+                                copyBtn.textContent = '실패';
+                                setTimeout(() => {
+                                    copyBtn.textContent = '복사';
+                                }, 1000);
+                            });
+                        };
+                        
+                        // 컨테이너에 추가
+                        resultDiv.appendChild(textSpan);
+                        resultDiv.appendChild(copyBtn);
+                        
+                        finalResults.appendChild(resultDiv);
+                        finalResults.scrollTop = finalResults.scrollHeight;
+                        
+                        // 마지막 텍스트 업데이트
+                        lastFinalText = trimmedText;
+                    }
+                }
+
+                // 임시 결과 표시
+                if (interimTranscript) {
+                    interimResults.textContent = '인식 중: ' + interimTranscript;
+                } else {
+                    interimResults.textContent = '';
+                }
+            };
+
+            // 초기 상태 설정 (음성 인식이 지원되는 경우에만)
+            if (recognition) {
+                dropdownDebugInfo.textContent = '음성 인식이 지원됩니다.';
+            }
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,23 @@
+# 개발 환경
+.DS_Store
+Thumbs.db
+.claude/
+
+# 로그 파일
+*.log
+
+# 임시 파일
+*.tmp
+*.temp
+
+# IDE 설정
+.vscode/
+.idea/
+
+# Node.js (필요시)
+node_modules/
+package-lock.json
+
+# 환경 설정 (API 키 등)
+.env
+.env.local
