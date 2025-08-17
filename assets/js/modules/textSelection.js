@@ -60,7 +60,6 @@ class TextSelectionModule {
                 
                 if (cleanedText && cleanedText.length > 3) {
                     this.showPopupBtn(event.pageX, event.pageY, cleanedText);
-                    console.log('선택된 텍스트:', cleanedText);
                 }
             }
         }
@@ -75,11 +74,11 @@ class TextSelectionModule {
         const elements = this.ui.getElements();
         const range = selection.getRangeAt(0);
         
-        // startContainer나 endContainer가 finalResults 내부에 있는지 확인
+        // startContainer와 endContainer 모두 finalResults 내부에 있어야 함
         const startInFinal = this.isNodeInFinalResults(range.startContainer, elements.finalResults);
         const endInFinal = this.isNodeInFinalResults(range.endContainer, elements.finalResults);
         
-        return startInFinal || endInFinal;
+        return startInFinal && endInFinal;
     }
 
     /**

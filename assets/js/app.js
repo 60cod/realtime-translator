@@ -16,12 +16,12 @@ class SpeechRecognitionApp {
      */
     async initialize() {
         try {
-            Utils.log.info('애플리케이션 초기화 시작');
+            //Utils.log.info('애플리케이션 초기화 시작');
             Utils.performance.start('app-init');
 
             // 브라우저 지원 확인
             const support = Utils.checkBrowserSupport();
-            Utils.log.info('브라우저 지원 상태:', support);
+            //Utils.log.info('브라우저 지원 상태:', support);
 
             // 모듈 초기화
             this.initializeModules();
@@ -33,7 +33,7 @@ class SpeechRecognitionApp {
             this.setupInitialState();
 
             Utils.performance.end('app-init');
-            Utils.log.info('애플리케이션 초기화 완료');
+            //Utils.log.info('애플리케이션 초기화 완료');
         } catch (error) {
             Utils.log.error('애플리케이션 초기화 실패:', error);
             this.handleInitializationError(error);
@@ -57,7 +57,7 @@ class SpeechRecognitionApp {
         // 텍스트 선택 모듈 초기화
         this.textSelectionModule = new TextSelectionModule(this.uiModule);
 
-        Utils.log.info('모든 모듈 초기화 완료');
+        //Utils.log.info('모든 모듈 초기화 완료');
     }
 
     /**
@@ -85,7 +85,7 @@ class SpeechRecognitionApp {
         // 텍스트 선택 콜백 설정
         this.textSelectionModule.setTextSelectedCallback((text) => this.onTextSelected(text));
 
-        Utils.log.debug('이벤트 리스너 설정 완료');
+        //Utils.log.debug('이벤트 리스너 설정 완료');
     }
 
     /**
@@ -105,7 +105,7 @@ class SpeechRecognitionApp {
             this.uiModule.getElements().dropdownApiKey.value = translationStatus.apiKey;
         }
 
-        Utils.log.debug('초기 상태 설정 완료');
+        //Utils.log.debug('초기 상태 설정 완료');
     }
 
     /**
@@ -113,7 +113,7 @@ class SpeechRecognitionApp {
      */
     async startRecognition() {
         try {
-            Utils.log.info('음성 인식 시작');
+            // Utils.log.info('음성 인식 시작');
             await this.speechModule.start();
         } catch (error) {
             Utils.log.error('음성 인식 시작 실패:', error);
@@ -127,7 +127,7 @@ class SpeechRecognitionApp {
      */
     async stopRecognition() {
         try {
-            Utils.log.info('음성 인식 중지');
+            // Utils.log.info('음성 인식 중지');
             await this.speechModule.stop();
         } catch (error) {
             Utils.log.error('음성 인식 중지 실패:', error);
@@ -139,7 +139,7 @@ class SpeechRecognitionApp {
      * 전체 초기화
      */
     clearAll() {
-        Utils.log.info('전체 초기화');
+        //Utils.log.info('전체 초기화');
         this.speechModule.reset();
         this.translationModule.reset();
         this.textSelectionModule.reset();
@@ -156,7 +156,7 @@ class SpeechRecognitionApp {
         if (this.translationModule.setApiKey(key)) {
             this.uiModule.updateApiKeyStatus(true);
             this.uiModule.updateStatus('DeepL API 키가 저장되었습니다.');
-            Utils.log.info('API 키 저장 완료');
+            //Utils.log.info('API 키 저장 완료');
         } else {
             this.uiModule.updateStatus('API 키를 입력해주세요.');
             Utils.log.warn('API 키 저장 실패: 빈 값');
@@ -167,7 +167,7 @@ class SpeechRecognitionApp {
      * 텍스트 선택 이벤트 처리
      */
     async onTextSelected(text) {
-        Utils.log.info('텍스트 선택됨:', text);
+        //Utils.log.info('텍스트 선택됨:', text);
         
         this.uiModule.displaySelectedText(text);
         
@@ -194,7 +194,7 @@ class SpeechRecognitionApp {
      * 음성 인식 시작 이벤트
      */
     onRecognitionStart() {
-        Utils.log.debug('음성 인식 시작됨');
+        //Utils.log.debug('음성 인식 시작됨');
         this.uiModule.updateButtonStates(true);
         this.uiModule.updateStatus('🎤 음성 인식 중... 영어로 말씀하세요', true);
     }
@@ -203,7 +203,7 @@ class SpeechRecognitionApp {
      * 음성 인식 종료 이벤트
      */
     onRecognitionEnd() {
-        Utils.log.debug('음성 인식 종료됨');
+        //Utils.log.debug('음성 인식 종료됨');
         this.uiModule.updateButtonStates(false);
         this.uiModule.updateStatus('대기 중...');
     }
@@ -221,7 +221,7 @@ class SpeechRecognitionApp {
      * 음성 인식 결과 이벤트
      */
     onRecognitionResult(result) {
-        Utils.log.debug('음성 인식 결과:', result);
+        //Utils.log.debug('음성 인식 결과:', result);
 
         // 임시 결과 업데이트
         this.uiModule.updateInterimResults(result.interimTranscript);
@@ -235,7 +235,7 @@ class SpeechRecognitionApp {
             if (trimmedText && trimmedText !== lastTrimmedText) {
                 this.uiModule.addFinalResult(trimmedText);
                 this.speechModule.updateLastFinalText(trimmedText);
-                Utils.log.info('새로운 음성 인식 결과 추가:', trimmedText);
+                //Utils.log.info('새로운 음성 인식 결과 추가:', trimmedText);
             }
         }
     }
@@ -269,7 +269,7 @@ class SpeechRecognitionApp {
 
 // DOM이 로드되면 애플리케이션 시작
 document.addEventListener('DOMContentLoaded', () => {
-    Utils.log.info('DOM 로드 완료, 애플리케이션 시작');
+    //Utils.log.info('DOM 로드 완료, 애플리케이션 시작');
     window.app = new SpeechRecognitionApp();
 });
 

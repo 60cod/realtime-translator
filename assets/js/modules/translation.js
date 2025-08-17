@@ -66,7 +66,6 @@ class TranslationModule {
             }
 
             const data = await response.json();
-            console.log('번역 응답:', data);
 
             if (data.translations && data.translations.length > 0) {
                 return {
