@@ -36,11 +36,16 @@ class UIModule {
             // 설정 드롭다운
             settingsBtn: document.getElementById('settingsBtn'),
             settingsDropdown: document.getElementById('settingsDropdown'),
-            dropdownApiKey: document.getElementById('dropdownApiKey'),
-            dropdownSaveKeyBtn: document.getElementById('dropdownSaveKeyBtn'),
-            dropdownApiStatus: document.getElementById('dropdownApiStatus'),
             dropdownDebugInfo: document.getElementById('dropdownDebugInfo'),
-            dropdownDebugInfoStatus: document.getElementById('dropdownDebugInfoStatus')
+            dropdownDebugInfoStatus: document.getElementById('dropdownDebugInfoStatus'),
+
+            // 실시간 번역
+            translationProgress: document.getElementById('translationProgress'),
+            realtimeTranslations: document.getElementById('realtimeTranslations'),
+            realtimeTranslationToggle: document.getElementById('realtimeTranslationToggle'),
+
+            // 글씨 크기 설정
+            fontSizeSelect: document.getElementById('fontSizeSelect')
         };
     }
 
@@ -66,6 +71,14 @@ class UIModule {
         this.elements.settingsDropdown.addEventListener('click', (e) => {
             e.stopPropagation();
         });
+
+        // 글씨 크기 변경 이벤트
+        this.elements.fontSizeSelect.addEventListener('change', (e) => {
+            this.updateFontSize(e.target.value);
+        });
+
+        // 저장된 글씨 크기 설정 복원
+        this.loadFontSizeSettings();
     }
 
     /**
@@ -128,6 +141,12 @@ class UIModule {
         textSpan.className = 'result-text';
         textSpan.textContent = text;
         
+        // 현재 저장된 글씨 크기 적용
+        const savedFontSize = localStorage.getItem('fontSize');
+        if (savedFontSize) {
+            textSpan.style.fontSize = savedFontSize + 'px';
+        }
+        
         const copyBtn = document.createElement('button');
         copyBtn.className = 'copy-btn';
         copyBtn.textContent = '복사';
@@ -180,18 +199,6 @@ class UIModule {
         this.elements.settingsDropdown.classList.add('hidden');
     }
 
-    /**
-     * API 키 상태 업데이트
-     */
-    updateApiKeyStatus(hasKey) {
-        if (hasKey) {
-            this.elements.dropdownApiStatus.textContent = '설정됨';
-            this.elements.dropdownApiStatus.className = 'text-sm text-green-400';
-        } else {
-            this.elements.dropdownApiStatus.textContent = '미설정';
-            this.elements.dropdownApiStatus.className = 'text-sm text-gray-400';
-        }
-    }
 
     /**
      * 음성 인식 상태 업데이트
@@ -270,14 +277,62 @@ class UIModule {
     }
 
     /**
-     * 전체 초기화
+     * 실시간 번역 상태 업데이트
+     */
+    updateTranslationProgress(message) {
+        this.elements.translationProgress.textContent = message;
+    }
+
+    /**
+     * 전체 초기화 (Reset 버튼 클릭 시)
      */
     clearAll() {
         this.elements.finalResults.innerHTML = '';
         this.elements.interimResults.textContent = '';
         this.elements.selectedTextArea.classList.add('hidden');
         this.elements.translationResultArea.classList.add('hidden');
+        this.elements.realtimeTranslations.innerHTML = '';
+        this.updateTranslationProgress('번역 대기 중...');
         this.updateStatus('초기화 완료');
+    }
+
+    /**
+     * 글씨 크기 업데이트
+     */
+    updateFontSize(fontSize) {
+        const size = fontSize + 'px';
+        
+        // selectedTextContent 글씨 크기 변경
+        if (this.elements.selectedTextContent) {
+            this.elements.selectedTextContent.style.fontSize = size;
+        }
+        
+        // translationResult 글씨 크기 변경
+        if (this.elements.translationResult) {
+            this.elements.translationResult.style.fontSize = size;
+        }
+        
+        // 모든 result-text 요소의 글씨 크기 변경
+        const resultTexts = document.querySelectorAll('.result-text');
+        resultTexts.forEach(element => {
+            element.style.fontSize = size;
+        });
+        
+        // 로컬 스토리지에 저장
+        localStorage.setItem('fontSize', fontSize);
+        
+        // select 요소 값 업데이트
+        this.elements.fontSizeSelect.value = fontSize;
+    }
+
+    /**
+     * 저장된 글씨 크기 설정 복원
+     */
+    loadFontSizeSettings() {
+        const savedFontSize = localStorage.getItem('fontSize');
+        if (savedFontSize) {
+            this.updateFontSize(savedFontSize);
+        }
     }
 
     /**

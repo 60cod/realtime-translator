@@ -85,3 +85,96 @@
 .popup-btn:active {
     transform: scale(0.95);
 }
+
+/* 실시간 번역 스타일 */
+.translation-result {
+    border-left: 4px solid #10b981; /* 번역 결과는 초록색 */
+}
+
+.error-item {
+    border-left: 4px solid #ef4444; /* 오류는 빨간색 */
+    background-color: #7f1d1d; /* 어두운 빨간 배경 */
+}
+
+/* 커스텀 스크롤바 스타일 */
+/* WebKit 기반 브라우저 (Chrome, Safari, Edge) */
+.overflow-y-auto::-webkit-scrollbar {
+    width: 8px;
+}
+
+.overflow-y-auto::-webkit-scrollbar-track {
+    background: #1f2937; /* 어두운 회색 track */
+    border-radius: 4px;
+}
+
+.overflow-y-auto::-webkit-scrollbar-thumb {
+    background: #1a1a1a; /* 거의 검정색 thumb */
+    border-radius: 4px;
+    transition: background-color 0.3s ease;
+}
+
+.overflow-y-auto::-webkit-scrollbar-thumb:hover {
+    background: #6b7280; /* hover 시 더 밝은 회색 */
+}
+
+/* 스크롤바 화살표 버튼 숨기기 */
+.overflow-y-auto::-webkit-scrollbar-button {
+    display: none;
+}
+
+/* Firefox용 스크롤바 스타일 */
+.overflow-y-auto {
+    scrollbar-width: thin;
+    scrollbar-color: #1a1a1a #1f2937; /* thumb track */
+}
+
+/* 토글 스위치 스타일 */
+.toggle-switch {
+    position: relative;
+    display: inline-block;
+    width: 48px;
+    height: 24px;
+    cursor: pointer;
+}
+
+.toggle-switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.toggle-slider {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: #4b5563;
+    border-radius: 24px;
+    transition: all 0.3s ease;
+}
+
+.toggle-slider:before {
+    position: absolute;
+    content: "";
+    height: 20px;
+    width: 20px;
+    left: 2px;
+    bottom: 2px;
+    background-color: white;
+    border-radius: 50%;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.toggle-switch input:checked + .toggle-slider {
+    background-color: #10b981;
+}
+
+.toggle-switch input:checked + .toggle-slider:before {
+    transform: translateX(24px);
+}
+
+.toggle-switch:hover .toggle-slider {
+    box-shadow: 0 0 8px rgba(16, 185, 129, 0.3);
+}

@@ -7,6 +7,7 @@ class SpeechRecognitionApp {
         this.translationModule = null;
         this.uiModule = null;
         this.textSelectionModule = null;
+        this.realtimeTranslationModule = null;
 
         this.initialize();
     }
@@ -57,6 +58,9 @@ class SpeechRecognitionApp {
         // 텍스트 선택 모듈 초기화
         this.textSelectionModule = new TextSelectionModule(this.uiModule);
 
+        // 실시간 번역 모듈 초기화
+        this.realtimeTranslationModule = new RealtimeTranslationModule(this.translationModule, this.uiModule);
+
         //Utils.log.info('모든 모듈 초기화 완료');
     }
 
@@ -71,8 +75,11 @@ class SpeechRecognitionApp {
         elements.stopBtn.addEventListener('click', () => this.stopRecognition());
         elements.clearBtn.addEventListener('click', () => this.clearAll());
 
-        // API 키 저장 이벤트
-        elements.dropdownSaveKeyBtn.addEventListener('click', () => this.saveApiKey());
+        // 실시간 번역 토글 이벤트
+        elements.realtimeTranslationToggle.addEventListener('change', (e) => {
+            this.toggleRealtimeTranslation(e.target.checked);
+        });
+
 
         // 음성 인식 이벤트 콜백 설정
         this.speechModule.setEventListeners({
@@ -96,15 +103,6 @@ class SpeechRecognitionApp {
         const speechStatus = this.speechModule.getStatus();
         this.uiModule.updateSpeechRecognitionStatus(speechStatus.isSupported);
 
-        // API 키 상태 업데이트
-        const translationStatus = this.translationModule.getStatus();
-        this.uiModule.updateApiKeyStatus(translationStatus.hasApiKey);
-
-        // API 키가 있으면 입력 필드에 표시
-        if (translationStatus.hasApiKey) {
-            this.uiModule.getElements().dropdownApiKey.value = translationStatus.apiKey;
-        }
-
         //Utils.log.debug('초기 상태 설정 완료');
     }
 
@@ -115,6 +113,11 @@ class SpeechRecognitionApp {
         try {
             // Utils.log.info('음성 인식 시작');
             await this.speechModule.start();
+            
+            // 토글 스위치 상태에 따라 실시간 번역 활성화
+            const elements = this.uiModule.getElements();
+            const isToggleOn = elements.realtimeTranslationToggle.checked;
+            this.realtimeTranslationModule.setEnabled(isToggleOn);
         } catch (error) {
             Utils.log.error('음성 인식 시작 실패:', error);
             this.uiModule.updateStatus('음성 인식 시작 실패: ' + error.message);
@@ -129,6 +132,9 @@ class SpeechRecognitionApp {
         try {
             // Utils.log.info('음성 인식 중지');
             await this.speechModule.stop();
+            
+            // 실시간 번역 비활성화
+            this.realtimeTranslationModule.setEnabled(false);
         } catch (error) {
             Utils.log.error('음성 인식 중지 실패:', error);
             this.uiModule.updateButtonStates(true);
@@ -143,25 +149,27 @@ class SpeechRecognitionApp {
         this.speechModule.reset();
         this.translationModule.reset();
         this.textSelectionModule.reset();
+        this.realtimeTranslationModule.reset();
         this.uiModule.clearAll();
     }
 
     /**
-     * API 키 저장
+     * 실시간 번역 토글
      */
-    saveApiKey() {
-        const elements = this.uiModule.getElements();
-        const key = elements.dropdownApiKey.value.trim();
-
-        if (this.translationModule.setApiKey(key)) {
-            this.uiModule.updateApiKeyStatus(true);
-            this.uiModule.updateStatus('DeepL API 키가 저장되었습니다.');
-            //Utils.log.info('API 키 저장 완료');
-        } else {
-            this.uiModule.updateStatus('API 키를 입력해주세요.');
-            Utils.log.warn('API 키 저장 실패: 빈 값');
+    toggleRealtimeTranslation(isEnabled) {
+        // 음성 인식 중일 때만 실시간 번역 상태 변경
+        const speechStatus = this.speechModule.getStatus();
+        if (speechStatus.isRecognizing) {
+            this.realtimeTranslationModule.setEnabled(isEnabled);
+            
+            if (isEnabled) {
+                this.uiModule.updateTranslationProgress('번역 대기 중...');
+            } else {
+                this.uiModule.updateTranslationProgress('실시간 번역 비활성화됨');
+            }
         }
     }
+
 
     /**
      * 텍스트 선택 이벤트 처리
@@ -170,14 +178,6 @@ class SpeechRecognitionApp {
         //Utils.log.info('텍스트 선택됨:', text);
         
         this.uiModule.displaySelectedText(text);
-        
-        if (!this.translationModule.hasApiKey()) {
-            this.uiModule.displayTranslationResult({
-                success: false,
-                error: 'DeepL API 키를 먼저 설정해주세요.'
-            });
-            return;
-        }
 
         // 번역 시작
         this.uiModule.initializeTranslationResult();
@@ -235,6 +235,13 @@ class SpeechRecognitionApp {
             if (trimmedText && trimmedText !== lastTrimmedText) {
                 this.uiModule.addFinalResult(trimmedText);
                 this.speechModule.updateLastFinalText(trimmedText);
+                
+                // 토글 스위치가 켜져있을 때만 실시간 번역 트리거
+                const elements = this.uiModule.getElements();
+                if (elements.realtimeTranslationToggle.checked) {
+                    this.realtimeTranslationModule.translateNewText(trimmedText);
+                }
+                
                 //Utils.log.info('새로운 음성 인식 결과 추가:', trimmedText);
             }
         }

@@ -3,20 +3,7 @@
  */
 class TranslationModule {
     constructor() {
-        this.apiKey = localStorage.getItem('deepLApiKey');
         this.isTranslating = false;
-    }
-
-    /**
-     * API 키 설정
-     */
-    setApiKey(key) {
-        if (key && key.trim()) {
-            this.apiKey = key.trim();
-            localStorage.setItem('deepLApiKey', this.apiKey);
-            return true;
-        }
-        return false;
     }
 
     /**
@@ -24,13 +11,6 @@ class TranslationModule {
      */
     hasApiKey() {
         return true; // Netlify Function이 서버에서 API 키 관리
-    }
-
-    /**
-     * API 키 가져오기
-     */
-    getApiKey() {
-        return this.apiKey;
     }
 
     /**
@@ -90,8 +70,7 @@ class TranslationModule {
     getStatus() {
         return {
             hasApiKey: this.hasApiKey(),
-            isTranslating: this.isTranslating,
-            apiKey: this.apiKey
+            isTranslating: this.isTranslating
         };
     }
 
