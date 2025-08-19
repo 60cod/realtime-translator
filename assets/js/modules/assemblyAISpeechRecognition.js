@@ -27,8 +27,8 @@ class AssemblyAISpeechRecognitionModule {
             channels: 1,
             audioBitsPerSecond: 128000,
             chunkInterval: 100, // 100ms chunks for low latency
-            apiEndpoint: 'wss://api.assemblyai.com/v2/realtime/ws',
-            tokenEndpoint: 'https://60-realtime-translator.netlify.app/.netlify/functions/assemblyai-token'
+            apiEndpoint: 'wss://streaming.assemblyai.com/v3/ws',
+            formatTurns: true
         };
     }
 
@@ -77,11 +77,11 @@ class AssemblyAISpeechRecognitionModule {
     }
 
     /**
-     * Get temporary token
+     * Get API key from Netlify function
      */
-    async getTemporaryToken() {
+    async getApiKey() {
         try {
-            const response = await fetch(this.config.tokenEndpoint, {
+            const response = await fetch('https://60-realtime-translator.netlify.app/.netlify/functions/assemblyai-token', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
@@ -89,14 +89,14 @@ class AssemblyAISpeechRecognitionModule {
             });
 
             if (!response.ok) {
-                throw new Error(`Token request failed: ${response.status}`);
+                throw new Error(`API key request failed: ${response.status}`);
             }
 
             const data = await response.json();
-            return data.token;
+            return data.apiKey;
         } catch (error) {
-            console.error('Failed to get temporary token:', error);
-            throw new Error('토큰 획득 실패: ' + error.message);
+            console.error('Failed to get API key:', error);
+            throw new Error('API 키 획득 실패: ' + error.message);
         }
     }
 
@@ -105,10 +105,20 @@ class AssemblyAISpeechRecognitionModule {
      */
     async connectWebSocket() {
         try {
-            const token = await this.getTemporaryToken();
-            const wsUrl = `${this.config.apiEndpoint}?sample_rate=${this.config.sampleRate}&token=${token}`;
+            // Get API key from Netlify function
+            const apiKey = await this.getApiKey();
+            const params = new URLSearchParams({
+                sampleRate: this.config.sampleRate,
+                formatTurns: this.config.formatTurns
+            });
+            const wsUrl = `${this.config.apiEndpoint}?${params}`;
 
-            this.websocket = new WebSocket(wsUrl);
+            // Create WebSocket with authorization header
+            this.websocket = new WebSocket(wsUrl, [], {
+                headers: {
+                    'Authorization': apiKey
+                }
+            });
 
             return new Promise((resolve, reject) => {
                 this.websocket.onopen = () => {
@@ -148,37 +158,38 @@ class AssemblyAISpeechRecognitionModule {
         try {
             const data = JSON.parse(event.data);
             
-            switch (data.message_type) {
-                case 'SessionBegins':
+            switch (data.type) {
+                case 'Begin':
                     break;
                     
-                case 'PartialTranscript':
-                    if (data.text && this.callbacks.onResult) {
-                        this.callbacks.onResult({
-                            finalTranscript: '',
-                            interimTranscript: data.text,
-                            lastFinalText: this.lastFinalText,
-                            confidence: data.confidence || 0.5
-                        });
+                case 'Turn':
+                    if (data.transcript && this.callbacks.onResult) {
+                        const isFormatted = data.turn_is_formatted;
+                        if (isFormatted) {
+                            // Final transcript
+                            this.callbacks.onResult({
+                                finalTranscript: data.transcript,
+                                interimTranscript: '',
+                                lastFinalText: this.lastFinalText,
+                                confidence: 0.8
+                            });
+                        } else {
+                            // Interim transcript
+                            this.callbacks.onResult({
+                                finalTranscript: '',
+                                interimTranscript: data.transcript,
+                                lastFinalText: this.lastFinalText,
+                                confidence: 0.5
+                            });
+                        }
                     }
                     break;
                     
-                case 'FinalTranscript':
-                    if (data.text && this.callbacks.onResult) {
-                        this.callbacks.onResult({
-                            finalTranscript: data.text,
-                            interimTranscript: '',
-                            lastFinalText: this.lastFinalText,
-                            confidence: data.confidence || 0.8
-                        });
-                    }
-                    break;
-                    
-                case 'SessionTerminated':
+                case 'Termination':
                     break;
                     
                 default:
-                    console.log('Unknown message type:', data.message_type);
+                    console.log('Unknown message type:', data.type);
             }
         } catch (error) {
             console.error('Error parsing WebSocket message:', error);

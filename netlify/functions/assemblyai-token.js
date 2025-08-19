@@ -43,41 +43,17 @@ exports.handler = async (event, context) => {
             };
         }
 
-        // Generate temporary token using AssemblyAI REST API
-        const response = await fetch('https://api.assemblyai.com/v2/realtime/token', {
-            method: 'POST',
-            headers: {
-                'Authorization': apiKey,
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                expires_in: 3600 // 1 hour expiry
-            })
-        });
-
-        if (!response.ok) {
-            const errorText = await response.text();
-            console.error('API token generation failed:', response.status, errorText);
-            return {
-                statusCode: response.status,
-                headers,
-                body: JSON.stringify({ error: 'Token generation failed' })
-            };
-        }
-
-        const tokenData = await response.json();
-        
+        // Return API key directly (v3 streaming uses direct auth)
         return {
             statusCode: 200,
             headers,
             body: JSON.stringify({ 
-                token: tokenData.token,
-                expires_in: tokenData.expires_in
+                apiKey: apiKey
             })
         };
 
     } catch (error) {
-        console.error('Error generating API token:', error);
+        console.error('Error getting API key:', error);
         return {
             statusCode: 500,
             headers,
