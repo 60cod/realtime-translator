@@ -251,16 +251,34 @@ class AssemblyAISpeechRecognitionModule {
      */
     async startAudioCapture() {
         try {
-            // Request microphone permission (optimized for speech recognition)
-            this.mediaStream = await navigator.mediaDevices.getUserMedia({
-                audio: {
-                    sampleRate: this.config.sampleRate,
-                    channelCount: this.config.channels,
-                    echoCancellation: true,   // Keep echo cancellation for better quality
-                    noiseSuppression: true,   // Keep noise suppression for cleaner audio
-                    autoGainControl: false    // Disable auto gain to preserve speaker audio levels
-                }
-            });
+            // Try tab audio capture first (Chrome only), fallback to microphone
+            let audioStream;
+            
+            try {
+                // Option 1: Capture tab audio directly (Chrome/Edge)
+                console.log('🎵 Attempting tab audio capture...');
+                const displayStream = await navigator.mediaDevices.getDisplayMedia({
+                    video: false,
+                    audio: true
+                });
+                audioStream = displayStream;
+                console.log('✅ Tab audio capture successful');
+            } catch (error) {
+                console.log('⚠️ Tab audio not available, using microphone:', error.message);
+                
+                // Option 2: Fallback to microphone with echo cancellation disabled
+                audioStream = await navigator.mediaDevices.getUserMedia({
+                    audio: {
+                        sampleRate: this.config.sampleRate,
+                        channelCount: this.config.channels,
+                        echoCancellation: false,  // Disable to capture speaker audio
+                        noiseSuppression: true,   // Keep noise suppression for cleaner audio
+                        autoGainControl: false    // Disable auto gain to preserve speaker audio levels
+                    }
+                });
+            }
+            
+            this.mediaStream = audioStream;
 
             // Create AudioContext for PCM processing
             this.audioContext = new (window.AudioContext || window.webkitAudioContext)({
