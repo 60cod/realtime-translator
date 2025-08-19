@@ -25,7 +25,7 @@ class SpeechRecognitionApp {
             //Utils.log.info('브라우저 지원 상태:', support);
 
             // 모듈 초기화
-            this.initializeModules();
+            await this.initializeModules();
 
             // 이벤트 리스너 설정
             this.setupEventListeners();
@@ -44,13 +44,20 @@ class SpeechRecognitionApp {
     /**
      * 모듈 초기화
      */
-    initializeModules() {
+    async initializeModules() {
         // UI 모듈 초기화
         this.uiModule = new UIModule();
 
-        // 음성 인식 모듈 초기화
-        this.speechModule = new SpeechRecognitionModule();
-        const speechSupport = this.speechModule.configure();
+        // 음성 인식 모듈 초기화 (AssemblyAI)
+        this.speechModule = new AssemblyAISpeechRecognitionModule();
+        const speechSupport = await this.speechModule.initializeRecognition();
+        
+        if (!speechSupport.supported) {
+            console.error('Speech recognition not supported:', speechSupport.error);
+            this.handleSpeechNotSupported(speechSupport.error);
+        } else {
+            this.speechModule.configure();
+        }
 
         // 번역 모듈 초기화
         this.translationModule = new TranslationModule();
@@ -100,8 +107,10 @@ class SpeechRecognitionApp {
      */
     setupInitialState() {
         // 음성 인식 상태 업데이트
-        const speechStatus = this.speechModule.getStatus();
-        this.uiModule.updateSpeechRecognitionStatus(speechStatus.isSupported);
+        if (this.speechModule) {
+            const speechStatus = this.speechModule.getStatus();
+            this.uiModule.updateSpeechRecognitionStatus(speechStatus.isSupported);
+        }
 
         //Utils.log.debug('초기 상태 설정 완료');
     }
@@ -259,6 +268,20 @@ class SpeechRecognitionApp {
             statusElement.textContent = errorMessage;
         }
 
+        console.error(errorMessage);
+    }
+
+    /**
+     * 음성 인식 지원되지 않음 처리
+     */
+    handleSpeechNotSupported(error) {
+        const errorMessage = `음성 인식을 사용할 수 없습니다: ${error}`;
+        
+        if (this.uiModule) {
+            this.uiModule.updateStatus(errorMessage);
+            this.uiModule.updateSpeechRecognitionStatus(false);
+        }
+        
         console.error(errorMessage);
     }
 
