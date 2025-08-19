@@ -166,17 +166,19 @@ class AssemblyAISpeechRecognitionModule {
                     break;
                     
                 case 'Turn':
-                    console.log('🗣️ Turn received:', data.transcript, 'formatted:', data.turn_is_formatted);
+                    console.log('🗣️ Turn received:', data.transcript, 'formatted:', data.turn_is_formatted, 'end_of_turn:', data.end_of_turn);
                     if (data.transcript && this.callbacks.onResult) {
                         const isFormatted = data.turn_is_formatted;
-                        if (isFormatted) {
-                            // Final transcript
+                        const isEndOfTurn = data.end_of_turn;
+                        
+                        if (isFormatted || isEndOfTurn) {
+                            // Final transcript (formatted OR end of turn)
                             console.log('📝 Final transcript:', data.transcript);
                             this.callbacks.onResult({
                                 finalTranscript: data.transcript,
                                 interimTranscript: '',
                                 lastFinalText: this.lastFinalText,
-                                confidence: 0.8
+                                confidence: data.end_of_turn_confidence || 0.8
                             });
                         } else {
                             // Interim transcript
@@ -249,14 +251,14 @@ class AssemblyAISpeechRecognitionModule {
      */
     async startAudioCapture() {
         try {
-            // Request microphone permission
+            // Request microphone permission (optimized for speech recognition)
             this.mediaStream = await navigator.mediaDevices.getUserMedia({
                 audio: {
                     sampleRate: this.config.sampleRate,
                     channelCount: this.config.channels,
-                    echoCancellation: true,
-                    noiseSuppression: true,
-                    autoGainControl: true
+                    echoCancellation: true,   // Keep echo cancellation for better quality
+                    noiseSuppression: true,   // Keep noise suppression for cleaner audio
+                    autoGainControl: false    // Disable auto gain to preserve speaker audio levels
                 }
             });
 
