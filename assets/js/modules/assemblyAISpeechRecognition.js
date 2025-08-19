@@ -109,16 +109,17 @@ class AssemblyAISpeechRecognitionModule {
             const apiKey = await this.getApiKey();
             const params = new URLSearchParams({
                 sampleRate: this.config.sampleRate,
-                formatTurns: this.config.formatTurns
+                formatTurns: this.config.formatTurns,
+                token: apiKey // Pass API key as URL parameter for browser compatibility
             });
             const wsUrl = `${this.config.apiEndpoint}?${params}`;
 
-            // Create WebSocket with authorization header
-            this.websocket = new WebSocket(wsUrl, [], {
-                headers: {
-                    'Authorization': apiKey
-                }
-            });
+            // Create WebSocket (browser doesn't support headers in constructor)
+            this.websocket = new WebSocket(wsUrl);
+
+            if (!this.websocket) {
+                throw new Error('Failed to create WebSocket connection');
+            }
 
             return new Promise((resolve, reject) => {
                 this.websocket.onopen = () => {
@@ -141,7 +142,7 @@ class AssemblyAISpeechRecognitionModule {
 
                 // Connection timeout
                 setTimeout(() => {
-                    if (this.websocket.readyState !== WebSocket.OPEN) {
+                    if (this.websocket && this.websocket.readyState !== WebSocket.OPEN) {
                         reject(new Error('WebSocket 연결 타임아웃'));
                     }
                 }, 10000);
