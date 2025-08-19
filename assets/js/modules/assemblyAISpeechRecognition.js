@@ -158,16 +158,20 @@ class AssemblyAISpeechRecognitionModule {
     handleWebSocketMessage(event) {
         try {
             const data = JSON.parse(event.data);
+            console.log('📨 AssemblyAI Message:', data); // Debug log
             
             switch (data.type) {
                 case 'Begin':
+                    console.log('✅ Session started:', data);
                     break;
                     
                 case 'Turn':
+                    console.log('🗣️ Turn received:', data.transcript, 'formatted:', data.turn_is_formatted);
                     if (data.transcript && this.callbacks.onResult) {
                         const isFormatted = data.turn_is_formatted;
                         if (isFormatted) {
                             // Final transcript
+                            console.log('📝 Final transcript:', data.transcript);
                             this.callbacks.onResult({
                                 finalTranscript: data.transcript,
                                 interimTranscript: '',
@@ -176,6 +180,7 @@ class AssemblyAISpeechRecognitionModule {
                             });
                         } else {
                             // Interim transcript
+                            console.log('📄 Interim transcript:', data.transcript);
                             this.callbacks.onResult({
                                 finalTranscript: '',
                                 interimTranscript: data.transcript,
@@ -183,14 +188,20 @@ class AssemblyAISpeechRecognitionModule {
                                 confidence: 0.5
                             });
                         }
+                    } else {
+                        console.log('⚠️ No transcript or callback:', { 
+                            hasTranscript: !!data.transcript, 
+                            hasCallback: !!this.callbacks.onResult 
+                        });
                     }
                     break;
                     
                 case 'Termination':
+                    console.log('🔚 Session terminated:', data);
                     break;
                     
                 default:
-                    console.log('Unknown message type:', data.type);
+                    console.log('❓ Unknown message type:', data.type, data);
             }
         } catch (error) {
             console.error('Error parsing WebSocket message:', error);
@@ -258,7 +269,14 @@ class AssemblyAISpeechRecognitionModule {
             // Handle data events
             this.mediaRecorder.ondataavailable = (event) => {
                 if (event.data.size > 0 && this.websocket && this.websocket.readyState === WebSocket.OPEN) {
+                    console.log('🎤 Sending audio data:', event.data.size, 'bytes');
                     this.websocket.send(event.data);
+                } else {
+                    console.log('⚠️ Cannot send audio:', {
+                        dataSize: event.data.size,
+                        hasWebSocket: !!this.websocket,
+                        wsState: this.websocket?.readyState
+                    });
                 }
             };
 
