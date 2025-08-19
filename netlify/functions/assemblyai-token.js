@@ -43,12 +43,14 @@ exports.handler = async (event, context) => {
             };
         }
 
-        // Return API key directly (v3 streaming uses direct auth)
+        // Generate complete WebSocket URL with embedded auth
+        const wsUrl = `wss://streaming.assemblyai.com/v3/ws?sampleRate=16000&formatTurns=true&token=${encodeURIComponent(apiKey)}`;
+        
         return {
             statusCode: 200,
             headers,
             body: JSON.stringify({ 
-                apiKey: apiKey
+                wsUrl: wsUrl
             })
         };
 

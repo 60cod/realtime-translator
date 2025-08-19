@@ -7,6 +7,8 @@ class AssemblyAISpeechRecognitionModule {
         this.websocket = null;
         this.mediaRecorder = null;
         this.mediaStream = null;
+        this.audioContext = null;
+        this.processor = null;
         this.isRecognizing = false;
         this.lastFinalText = '';
         this.reconnectAttempts = 0;
@@ -77,9 +79,9 @@ class AssemblyAISpeechRecognitionModule {
     }
 
     /**
-     * Get API key from Netlify function
+     * Get WebSocket URL from Netlify function
      */
-    async getApiKey() {
+    async getWebSocketUrl() {
         try {
             const response = await fetch('https://60-realtime-translator.netlify.app/.netlify/functions/assemblyai-token', {
                 method: 'POST',
@@ -89,14 +91,14 @@ class AssemblyAISpeechRecognitionModule {
             });
 
             if (!response.ok) {
-                throw new Error(`API key request failed: ${response.status}`);
+                throw new Error(`WebSocket URL request failed: ${response.status}`);
             }
 
             const data = await response.json();
-            return data.apiKey;
+            return data.wsUrl;
         } catch (error) {
-            console.error('Failed to get API key:', error);
-            throw new Error('API 키 획득 실패: ' + error.message);
+            console.error('Failed to get WebSocket URL:', error);
+            throw new Error('WebSocket URL 획득 실패: ' + error.message);
         }
     }
 
@@ -105,16 +107,11 @@ class AssemblyAISpeechRecognitionModule {
      */
     async connectWebSocket() {
         try {
-            // Get API key from Netlify function
-            const apiKey = await this.getApiKey();
-            const params = new URLSearchParams({
-                sampleRate: this.config.sampleRate,
-                formatTurns: this.config.formatTurns,
-                token: apiKey // Pass API key as URL parameter for browser compatibility
-            });
-            const wsUrl = `${this.config.apiEndpoint}?${params}`;
+            // Get complete WebSocket URL from Netlify function
+            const wsUrl = await this.getWebSocketUrl();
+            console.log('🔗 Connecting to:', wsUrl);
 
-            // Create WebSocket (browser doesn't support headers in constructor)
+            // Create WebSocket with pre-authenticated URL
             this.websocket = new WebSocket(wsUrl);
 
             if (!this.websocket) {
