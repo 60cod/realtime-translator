@@ -132,11 +132,23 @@ class AssemblyAISpeechRecognitionModule {
                 };
 
                 this.websocket.onerror = (error) => {
-                    console.error('WebSocket error:', error);
+                    console.error('🔴 WebSocket error:', error);
+                    console.error('🔴 Error details:', {
+                        type: error.type,
+                        target: error.target,
+                        readyState: this.websocket?.readyState
+                    });
                     reject(new Error('WebSocket 연결 실패'));
                 };
 
                 this.websocket.onclose = (event) => {
+                    console.log('🔴 WebSocket closed:', {
+                        code: event.code,
+                        reason: event.reason,
+                        wasClean: event.wasClean,
+                        timestamp: new Date().toISOString()
+                    });
+                    this.websocket = null; // Set to null when closed
                     this.handleWebSocketClose(event);
                 };
 
