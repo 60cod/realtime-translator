@@ -242,13 +242,13 @@ class SpeechRecognitionApp {
 
             // 중복 방지
             if (trimmedText && trimmedText !== lastTrimmedText) {
-                this.uiModule.addFinalResult(trimmedText);
+                const resultId = this.uiModule.addFinalResult(trimmedText);
                 this.speechModule.updateLastFinalText(trimmedText);
                 
                 // 토글 스위치가 켜져있을 때만 실시간 번역 트리거
                 const elements = this.uiModule.getElements();
                 if (elements.realtimeTranslationToggle.checked) {
-                    this.realtimeTranslationModule.translateNewText(trimmedText);
+                    this.realtimeTranslationModule.translateNewText(trimmedText, resultId);
                 }
                 
                 //Utils.log.info('새로운 음성 인식 결과 추가:', trimmedText);

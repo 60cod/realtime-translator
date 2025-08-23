@@ -24,7 +24,12 @@
     background-color: #6b7280 !important;
 }
 
-/* 결과 아이템 스타일 */
+/* 결과 영역 스타일 */
+.result-container {
+    height: 500px;
+    overflow-x: hidden;
+}
+
 .result-item {
     display: flex;
     justify-content: space-between;

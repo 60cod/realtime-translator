@@ -79,9 +79,8 @@ class UIModule {
 
         // 음성 인식 결과 클릭 이벤트 (번역 결과로 네비게이션)
         this.elements.finalResults.addEventListener('click', (e) => {
-            const resultItem = e.target.closest('.result-item:not(.translation-result)');
-            if (resultItem) {
-                const resultId = resultItem.dataset.resultId;
+            if (e.target.classList.contains('result-text')) {
+                const resultId = e.target.dataset.resultId;
                 if (resultId) {
                     this.scrollToTranslationResult(resultId);
                 }
@@ -150,11 +149,11 @@ class UIModule {
         
         const resultDiv = document.createElement('div');
         resultDiv.className = 'result-item';
-        resultDiv.setAttribute('data-result-id', resultId);
         
         const textSpan = document.createElement('span');
         textSpan.className = 'result-text';
         textSpan.textContent = text;
+        textSpan.setAttribute('data-result-id', resultId);
         
         // 현재 저장된 글씨 크기 적용
         const savedFontSize = localStorage.getItem('fontSize');
@@ -356,9 +355,12 @@ class UIModule {
      * 번역 결과로 스크롤 및 하이라이트 효과
      */
     scrollToTranslationResult(resultId) {
-        const translationItem = document.querySelector(`[data-translation-for="${resultId}"]`);
+        const translationTextElement = document.querySelector(`[data-translation-for="${resultId}"]`);
         
-        if (translationItem) {
+        if (translationTextElement) {
+            // 번역 결과의 부모 div로 스크롤
+            const translationItem = translationTextElement.closest('.result-item');
+            
             // 스크롤 애니메이션
             translationItem.scrollIntoView({ 
                 behavior: 'smooth', 

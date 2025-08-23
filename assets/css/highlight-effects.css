@@ -26,25 +26,27 @@
 }
 
 /* 클릭 가능한 음성 인식 결과 스타일 개선 */
-.result-item:not(.translation-result) {
+.result-item:not(.translation-result) .result-text {
     cursor: pointer;
     transition: all 0.2s ease;
     position: relative;
+    display: block;
+    padding: 4px;
+    border-radius: 4px;
 }
 
-.result-item:not(.translation-result):hover {
+.result-item:not(.translation-result) .result-text:hover {
     background: rgba(59, 130, 246, 0.1);
-    border-left: 4px solid #3b82f6;
     transform: translateX(2px);
 }
 
 /* 클릭 효과 */
-.result-item:not(.translation-result):active {
+.result-item:not(.translation-result) .result-text:active {
     transform: translateX(2px) scale(0.98);
 }
 
 /* 연결 표시 아이콘 추가 */
-.result-item:not(.translation-result)::after {
+.result-item:not(.translation-result) .result-text::after {
     content: "🔗";
     position: absolute;
     right: 10px;
@@ -55,7 +57,7 @@
     font-size: 12px;
 }
 
-.result-item:not(.translation-result):hover::after {
+.result-item:not(.translation-result) .result-text:hover::after {
     opacity: 0.6;
 }
 
@@ -71,7 +73,6 @@
 
 /* 하이라이트 중일 때 연결 아이콘 표시 */
 .translation-highlight::before {
-    content: "⭐";
     position: absolute;
     left: -15px;
     top: 50%;
