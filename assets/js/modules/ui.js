@@ -77,6 +77,17 @@ class UIModule {
             this.updateFontSize(e.target.value);
         });
 
+        // 음성 인식 결과 클릭 이벤트 (번역 결과로 네비게이션)
+        this.elements.finalResults.addEventListener('click', (e) => {
+            const resultItem = e.target.closest('.result-item:not(.translation-result)');
+            if (resultItem) {
+                const resultId = resultItem.dataset.resultId;
+                if (resultId) {
+                    this.scrollToTranslationResult(resultId);
+                }
+            }
+        });
+
         // 저장된 글씨 크기 설정 복원
         this.loadFontSizeSettings();
     }
@@ -134,8 +145,12 @@ class UIModule {
      * 최종 결과 추가
      */
     addFinalResult(text) {
+        // 고유한 ID 생성
+        const resultId = `result_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+        
         const resultDiv = document.createElement('div');
         resultDiv.className = 'result-item';
+        resultDiv.setAttribute('data-result-id', resultId);
         
         const textSpan = document.createElement('span');
         textSpan.className = 'result-text';
@@ -157,6 +172,8 @@ class UIModule {
         
         this.elements.finalResults.appendChild(resultDiv);
         this.elements.finalResults.scrollTop = this.elements.finalResults.scrollHeight;
+        
+        return resultId; // 연결을 위한 ID 반환
     }
 
     /**
@@ -333,6 +350,89 @@ class UIModule {
         if (savedFontSize) {
             this.updateFontSize(savedFontSize);
         }
+    }
+
+    /**
+     * 번역 결과로 스크롤 및 하이라이트 효과
+     */
+    scrollToTranslationResult(resultId) {
+        const translationItem = document.querySelector(`[data-translation-for="${resultId}"]`);
+        
+        if (translationItem) {
+            // 스크롤 애니메이션
+            translationItem.scrollIntoView({ 
+                behavior: 'smooth', 
+                block: 'center' 
+            });
+            
+            // 하이라이트 효과
+            this.highlightTranslationResult(translationItem);
+        } else {
+            // 번역 결과가 없는 경우 알림
+            this.showNotification('해당 번역 결과를 찾을 수 없습니다.');
+        }
+    }
+
+    /**
+     * 번역 결과 하이라이트 효과
+     */
+    highlightTranslationResult(element) {
+        // 기존 하이라이트 클래스 제거 (다른 요소들)
+        document.querySelectorAll('.translation-highlight').forEach(el => {
+            el.classList.remove('translation-highlight');
+        });
+        
+        // 하이라이트 효과 추가
+        element.classList.add('translation-highlight');
+        
+        // 3초 후 하이라이트 제거
+        setTimeout(() => {
+            element.classList.remove('translation-highlight');
+        }, 3000);
+    }
+
+    /**
+     * 알림 메시지 표시
+     */
+    showNotification(message) {
+        // 기존 알림이 있다면 제거
+        const existingNotification = document.querySelector('.scroll-notification');
+        if (existingNotification) {
+            existingNotification.remove();
+        }
+        
+        // 알림 요소 생성
+        const notification = document.createElement('div');
+        notification.className = 'scroll-notification';
+        notification.textContent = message;
+        notification.style.cssText = `
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 12px 20px;
+            border-radius: 8px;
+            z-index: 1000;
+            font-size: 14px;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        `;
+        
+        document.body.appendChild(notification);
+        
+        // 페이드 인
+        setTimeout(() => {
+            notification.style.opacity = '1';
+        }, 10);
+        
+        // 2초 후 페이드 아웃 및 제거
+        setTimeout(() => {
+            notification.style.opacity = '0';
+            setTimeout(() => {
+                notification.remove();
+            }, 300);
+        }, 2000);
     }
 
     /**

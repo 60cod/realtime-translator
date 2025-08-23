@@ -64,12 +64,17 @@ class RealtimeTranslationModule {
     /**
      * 번역 결과를 UI에 추가
      */
-    addTranslationResult(originalText, translatedText) {
+    addTranslationResult(originalText, translatedText, resultId = null) {
         const elements = this.ui.getElements();
         
         // 번역 결과 아이템 생성
         const resultDiv = document.createElement('div');
         resultDiv.className = 'result-item translation-result';
+        
+        // 연결을 위한 ID 설정
+        if (resultId) {
+            resultDiv.setAttribute('data-translation-for', resultId);
+        }
         
         const textSpan = document.createElement('span');
         textSpan.className = 'result-text';
