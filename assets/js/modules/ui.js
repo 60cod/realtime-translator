@@ -361,11 +361,39 @@ class UIModule {
             // 번역 결과의 부모 div로 스크롤
             const translationItem = translationTextElement.closest('.result-item');
             
-            // 스크롤 애니메이션
-            translationItem.scrollIntoView({ 
-                behavior: 'smooth', 
-                block: 'center' 
-            });
+            // finalResults의 클릭된 result-item 찾기
+            const clickedResultText = document.querySelector(`[data-result-id="${resultId}"]`);
+            const clickedResultItem = clickedResultText ? clickedResultText.closest('.result-item') : null;
+            
+            // 레이아웃 확인: 가로 배치인지 세로 배치인지
+            const translationContainer = translationItem.closest('#realtimeTranslations');
+            const finalResultsContainer = clickedResultItem ? clickedResultItem.closest('#finalResults') : null;
+            
+            const isVerticalLayout = finalResultsContainer && translationContainer ? 
+                finalResultsContainer.getBoundingClientRect().top !== translationContainer.getBoundingClientRect().top : true;
+            
+            if (clickedResultItem && !isVerticalLayout) {
+                // 클릭된 아이템의 finalResults 컨테이너 내에서의 실제 위치 (스크롤 고려)
+                const clickedItemOffsetInContainer = clickedResultItem.offsetTop - finalResultsContainer.scrollTop;
+                
+                // 번역 아이템의 realtimeTranslations 컨테이너 내에서의 위치 (스크롤 고려)
+                const translationItemOffsetInContainer = translationItem.offsetTop;
+                
+                // 목표: 번역 결과가 클릭된 아이템과 같은 상대적 위치에 오도록 스크롤
+                const targetScrollTop = translationItemOffsetInContainer - clickedItemOffsetInContainer;
+                
+                // 부드러운 스크롤
+                translationContainer.scrollTo({
+                    top: Math.max(0, targetScrollTop),
+                    behavior: 'smooth'
+                });
+            } else {
+                // 세로 배치 또는 모바일: 기본 스크롤 (중앙 정렬)
+                translationItem.scrollIntoView({ 
+                    behavior: 'smooth', 
+                    block: 'center' 
+                });
+            }
             
             // 하이라이트 효과
             this.highlightTranslationResult(translationItem);

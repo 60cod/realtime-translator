@@ -4,24 +4,20 @@
 
 /* 번역 결과 하이라이트 애니메이션 */
 .translation-highlight {
-    animation: pulse-highlight 2s ease-in-out;
-    background: linear-gradient(45deg, rgba(34, 197, 94, 0.2), rgba(59, 130, 246, 0.2));
-    border-left: 4px solid #22c55e !important;
-    box-shadow: 0 0 20px rgba(34, 197, 94, 0.3);
-    transform: scale(1.02);
-    transition: all 0.3s ease;
+    animation: click-bounce 1s ease-out;
+    background: rgb(16, 185, 129, 0.5);
+    transform: scale(1);
 }
 
-/* 펄스 애니메이션 */
-@keyframes pulse-highlight {
+@keyframes click-bounce {
     0% {
-        box-shadow: 0 0 20px rgba(34, 197, 94, 0.3);
+        transform: translateY(0);
     }
     50% {
-        box-shadow: 0 0 30px rgba(34, 197, 94, 0.6), 0 0 40px rgba(59, 130, 246, 0.3);
+        transform: translateY(-4px);
     }
     100% {
-        box-shadow: 0 0 20px rgba(34, 197, 94, 0.3);
+        transform: translateY(0);
     }
 }
 
@@ -36,7 +32,7 @@
 }
 
 .result-item:not(.translation-result) .result-text:hover {
-    background: rgba(59, 130, 246, 0.1);
+    background: rgb(0, 0, 0, 0.3);
     transform: translateX(2px);
 }
 
@@ -61,46 +57,10 @@
     opacity: 0.6;
 }
 
-/* 번역 결과 구분 스타일 */
-.translation-result {
-    border-left: 4px solid #8b5cf6;
-    background: rgba(139, 92, 246, 0.05);
-}
-
-.translation-result .result-text {
-    color: #a78bfa;
-}
-
-/* 하이라이트 중일 때 연결 아이콘 표시 */
-.translation-highlight::before {
-    position: absolute;
-    left: -15px;
-    top: 50%;
-    transform: translateY(-50%);
-    font-size: 16px;
-    animation: star-twinkle 1s ease-in-out infinite alternate;
-}
-
-@keyframes star-twinkle {
-    0% {
-        opacity: 0.5;
-        transform: translateY(-50%) scale(1);
-    }
-    100% {
-        opacity: 1;
-        transform: translateY(-50%) scale(1.2);
-    }
-}
-
 /* 반응형 디자인 */
 @media (max-width: 768px) {
-    .result-item:not(.translation-result)::after {
+    .result-item:not(.translation-result) .result-text::after {
         right: 5px;
         font-size: 10px;
-    }
-    
-    .translation-highlight::before {
-        left: -10px;
-        font-size: 14px;
     }
 }
