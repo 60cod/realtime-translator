@@ -8,7 +8,7 @@ class DeeplClient {
     }
 
     /**
-     * Translate text using DeepL API
+     * Translate text using proxy translation endpoint
      * @param {Array<string>} text - Array of text to translate
      * @param {string} target_lang - Target language (default: 'KO')
      * @param {string} source_lang - Source language (optional, auto-detect)
@@ -20,11 +20,32 @@ class DeeplClient {
         }
 
         try {
-            // Get API key from proxy
-            const apiKey = await window.apiProxyClient.getApiKey('deepl');
+            // Use translation proxy to avoid CORS issues
+            const body = {
+                text: text,
+                target_lang: target_lang
+            };
 
-            // Call DeepL API with retry logic
-            const result = await this.translateWithRetry(text, target_lang, source_lang, apiKey);
+            if (source_lang) {
+                body.source_lang = source_lang;
+            }
+
+            const response = await fetch('https://api-proxy.ygna.blog/api/translate', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Origin': window.location.origin,
+                    'Referer': window.location.href
+                },
+                body: JSON.stringify(body)
+            });
+
+            if (!response.ok) {
+                throw new Error(`Translation request failed: ${response.status}`);
+            }
+
+            const result = await response.json();
+            console.log('✅ DeepL translation completed via proxy');
             return result;
 
         } catch (error) {
