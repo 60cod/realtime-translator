@@ -7,47 +7,37 @@ class TranslationModule {
     }
 
     /**
-     * API 키 상태 확인 (Netlify Function 사용시 항상 true)
+     * API 키 상태 확인 (API Proxy 클라이언트 사용)
      */
     hasApiKey() {
-        return true; // Netlify Function이 서버에서 API 키 관리
+        return window.deeplClient && window.apiProxyClient;
     }
 
     /**
-     * Netlify Function을 통한 텍스트 번역
+     * DeepL 클라이언트를 통한 직접 텍스트 번역
      */
     async translateText(text, targetLang = 'KO') {
         if (!text || !text.trim()) {
             throw new Error('번역할 텍스트가 없습니다.');
         }
 
+        if (!this.hasApiKey()) {
+            throw new Error('API 클라이언트가 초기화되지 않았습니다.');
+        }
+
         this.isTranslating = true;
 
         try {
-            const response = await fetch('https://60-realtime-translator.netlify.app/.netlify/functions/deepl-translate', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    text: [text.trim()],
-                    target_lang: targetLang
-                })
-            });
-
-            if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(`번역 오류: ${response.status} - ${errorData.error || 'API 호출 실패'}`);
-            }
-
-            const data = await response.json();
+            // DeepL 클라이언트를 통해 직접 번역
+            const data = await window.deeplClient.translate([text.trim()], targetLang);
 
             if (data.translations && data.translations.length > 0) {
                 return {
                     success: true,
                     translatedText: data.translations[0].text,
                     originalText: text,
-                    targetLang
+                    targetLang,
+                    detectedLanguage: data.translations[0].detected_source_language
                 };
             } else {
                 throw new Error('번역 결과가 없습니다.');

@@ -77,26 +77,21 @@ class AssemblyAISpeechRecognitionModule {
     }
 
     /**
-     * Get WebSocket URL from Netlify function
+     * Get API key from proxy client and create WebSocket URL
      */
     async getWebSocketUrl() {
         try {
-            const response = await fetch('https://60-realtime-translator.netlify.app/.netlify/functions/assemblyai-token', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                }
-            });
-
-            if (!response.ok) {
-                throw new Error(`WebSocket URL request failed: ${response.status}`);
-            }
-
-            const data = await response.json();
-            return data.wsUrl;
+            // Get API key using the API proxy client
+            const apiKey = await window.apiProxyClient.getApiKey('assemblyai');
+            
+            // Create WebSocket URL directly with received API key
+            const wsUrl = `wss://streaming.assemblyai.com/v3/ws?sampleRate=16000&formatTurns=true&token=${encodeURIComponent(apiKey)}`;
+            
+            console.log('✅ AssemblyAI API Key obtained via proxy client');
+            return wsUrl;
         } catch (error) {
-            console.error('Failed to get WebSocket URL:', error);
-            throw new Error('WebSocket URL acquisition failed: ' + error.message);
+            console.error('Failed to get API key from proxy:', error);
+            throw new Error('API key acquisition failed: ' + error.message);
         }
     }
 
