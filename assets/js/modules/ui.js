@@ -5,6 +5,9 @@ class UIModule {
     constructor() {
         this.elements = this.initializeElements();
         this.setupEventListeners();
+        
+        // 노트 시스템 초기화
+        this.initializeNoteSystem();
     }
 
     /**
@@ -171,6 +174,11 @@ class UIModule {
         
         this.elements.finalResults.appendChild(resultDiv);
         this.elements.finalResults.scrollTop = this.elements.finalResults.scrollHeight;
+        
+        // 노트 상호작용 추가 (시스템이 초기화된 경우에만)
+        if (this.noteInteraction) {
+            this.noteInteraction.addHoverToElement(textSpan);
+        }
         
         return resultId; // 연결을 위한 ID 반환
     }
@@ -463,6 +471,152 @@ class UIModule {
                 notification.remove();
             }, 300);
         }, 2000);
+    }
+
+    /**
+     * 노트 시스템 초기화
+     */
+    initializeNoteSystem() {
+        // 노트 스토리지 초기화
+        this.noteStorage = new NoteStorageModule();
+        
+        // 노트 패널 초기화
+        this.notePanel = new NotePanelModule(this.noteStorage);
+        
+        // 노트 상호작용 초기화
+        this.noteInteraction = new NoteInteractionModule(this.notePanel, this.noteStorage, this);
+        
+        // 노트 토글 버튼 추가
+        this.createNoteToggleButton();
+        
+        // 상호작용 시스템 활성화
+        this.noteInteraction.enable();
+        
+        // 실시간 번역 결과에 호버 이벤트 추가를 위한 감시 설정
+        this.setupNoteInteractionObserver();
+    }
+
+    /**
+     * 노트 토글 버튼 생성
+     */
+    createNoteToggleButton() {
+        const toggleBtn = document.createElement('button');
+        toggleBtn.className = 'note-toggle-btn';
+        toggleBtn.innerHTML = '📝';
+        toggleBtn.title = '노트 패널 열기/닫기';
+        
+        // 설정 버튼 옆에 배치하기 위해 위치 조정
+        toggleBtn.style.right = '80px'; // 설정 버튼과 간격 조정
+        
+        toggleBtn.addEventListener('click', () => {
+            this.notePanel.togglePanel();
+            toggleBtn.classList.toggle('active', this.notePanel.isOpen());
+        });
+        
+        document.body.appendChild(toggleBtn);
+        this.noteToggleBtn = toggleBtn;
+    }
+
+    /**
+     * 노트 상호작용을 위한 감시 설정
+     */
+    setupNoteInteractionObserver() {
+        // 실시간 번역 결과가 추가될 때마다 호버 이벤트 추가
+        const observer = new MutationObserver((mutations) => {
+            mutations.forEach((mutation) => {
+                mutation.addedNodes.forEach((node) => {
+                    if (node.nodeType === Node.ELEMENT_NODE) {
+                        // 번역 텍스트 요소에 클래스 추가 및 호버 활성화
+                        if (node.classList && node.classList.contains('result-item')) {
+                            const translationText = node.querySelector('.translation-text');
+                            if (translationText) {
+                                this.noteInteraction.addHoverToElement(translationText);
+                            }
+                        }
+                    }
+                });
+            });
+        });
+
+        // 실시간 번역 결과 영역 감시
+        if (this.elements.realtimeTranslations) {
+            observer.observe(this.elements.realtimeTranslations, { childList: true, subtree: true });
+        }
+    }
+
+    /**
+     * 실시간 번역 결과 추가 (노트 기능과 함께)
+     */
+    addRealtimeTranslationResult(originalText, translatedText, resultId) {
+        const resultDiv = document.createElement('div');
+        resultDiv.className = 'result-item translation-result';
+        
+        const translationSpan = document.createElement('span');
+        translationSpan.className = 'translation-text';
+        translationSpan.textContent = translatedText;
+        translationSpan.setAttribute('data-translation-for', resultId);
+        
+        // 현재 저장된 글씨 크기 적용
+        const savedFontSize = localStorage.getItem('fontSize');
+        if (savedFontSize) {
+            translationSpan.style.fontSize = savedFontSize + 'px';
+        }
+        
+        const copyBtn = document.createElement('button');
+        copyBtn.className = 'copy-btn';
+        copyBtn.textContent = '복사';
+        copyBtn.onclick = () => this.copyToClipboard(translatedText, copyBtn);
+        
+        resultDiv.appendChild(translationSpan);
+        resultDiv.appendChild(copyBtn);
+        
+        this.elements.realtimeTranslations.appendChild(resultDiv);
+        this.elements.realtimeTranslations.scrollTop = this.elements.realtimeTranslations.scrollHeight;
+        
+        // 노트 상호작용 추가
+        this.noteInteraction.addHoverToElement(translationSpan);
+        
+        return resultId;
+    }
+
+    /**
+     * 노트 패널 열기
+     */
+    openNotePanel() {
+        if (this.notePanel) {
+            this.notePanel.showPanel();
+            if (this.noteToggleBtn) {
+                this.noteToggleBtn.classList.add('active');
+            }
+        }
+    }
+
+    /**
+     * 노트 패널 닫기
+     */
+    closeNotePanel() {
+        if (this.notePanel) {
+            this.notePanel.hidePanel();
+            if (this.noteToggleBtn) {
+                this.noteToggleBtn.classList.remove('active');
+            }
+        }
+    }
+
+    /**
+     * 노트 시스템 상태 가져오기
+     */
+    getNoteSystemStatus() {
+        if (!this.noteStorage || !this.notePanel) {
+            return { initialized: false };
+        }
+        
+        return {
+            initialized: true,
+            notesCount: this.noteStorage.getAllNotes().length,
+            panelOpen: this.notePanel.isOpen(),
+            storageSize: this.noteStorage.getStorageSize()
+        };
     }
 
     /**

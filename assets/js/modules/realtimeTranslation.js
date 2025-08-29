@@ -72,7 +72,7 @@ class RealtimeTranslationModule {
         resultDiv.className = 'result-item translation-result';
         
         const textSpan = document.createElement('span');
-        textSpan.className = 'result-text';
+        textSpan.className = 'translation-text';
         textSpan.textContent = translatedText;
         
         // 연결을 위한 ID 설정 (result-text에 직접)
