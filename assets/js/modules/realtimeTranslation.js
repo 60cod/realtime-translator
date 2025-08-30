@@ -1,5 +1,5 @@
 /**
- * 실시간 번역 모듈
+ * Real-time Translation Module
  */
 class RealtimeTranslationModule {
     constructor(translationModule, uiModule) {
@@ -12,7 +12,7 @@ class RealtimeTranslationModule {
     }
 
     /**
-     * 실시간 번역 활성화/비활성화
+     * Enable/disable real-time translation
      */
     setEnabled(enabled) {
         this.isEnabled = enabled;
@@ -21,53 +21,58 @@ class RealtimeTranslationModule {
             this.ui.updateTranslationProgress('번역 대기 중...');
         } else {
             this.hasError = false;
-            // Stop 시에는 번역 결과를 유지하고 상태만 초기화
+            // On stop: keep translation results and reset state only
             this.ui.updateTranslationProgress('번역 중지됨');
         }
     }
 
     /**
-     * 새로운 텍스트 번역 요청
+     * Request translation for new text
      */
     async translateNewText(text, resultId) {
         if (!this.isEnabled || this.hasError) {
             return;
         }
 
+        // 1. Display original text immediately (while queue system processes)
+        this.addTranslationPlaceholder(text, resultId);
+        
         try {
-            // 번역 상태 업데이트
+            // 2. Update translation status
             this.ui.updateTranslationProgress('번역 중...');
 
-            // 번역 실행
+            // 3. Execute translation (queue system handles automatically)
             const result = await this.translationModule.translateText(text);
 
             if (result.success) {
-                // 성공: 번역 결과 추가
-                this.addTranslationResult(text, result.translatedText, resultId);
+                // 4. Update on success
+                this.updateTranslationResult(resultId, result.translatedText);
                 this.ui.updateTranslationProgress('번역 완료');
                 
-                // 잠시 후 상태 초기화
+                // Reset status after a moment
                 setTimeout(() => {
                     if (this.isEnabled && !this.hasError) {
                         this.ui.updateTranslationProgress('번역 대기 중...');
                     }
                 }, 1000);
             } else {
-                // 실패: 오류 처리
+                // Handle failure
                 this.handleTranslationError(result.error);
             }
         } catch (error) {
-            this.handleTranslationError(error.message);
+            // 429 errors are handled naturally here (retrying in queue)
+            console.log('번역 처리 중...', error.message);
+            this.ui.updateTranslationProgress('처리 중...');
         }
     }
 
     /**
-     * 번역 결과를 UI에 추가
+     * Add translation result to UI (existing method, compatibility maintained)
      */
     addTranslationResult(originalText, translatedText, resultId) {
         const elements = this.ui.getElements();
         
-        // 번역 결과 아이템 생성
+        // Create translation result item
         const resultDiv = document.createElement('div');
         resultDiv.className = 'result-item translation-result';
         
@@ -75,12 +80,12 @@ class RealtimeTranslationModule {
         textSpan.className = 'translation-text';
         textSpan.textContent = translatedText;
         
-        // 연결을 위한 ID 설정 (result-text에 직접)
+        // Set ID for connection (directly to result-text)
         if (resultId) {
             textSpan.setAttribute('data-translation-for', resultId);
         }
         
-        // 현재 저장된 글씨 크기 적용
+        // Apply currently saved font size
         const savedFontSize = localStorage.getItem('fontSize');
         if (savedFontSize) {
             textSpan.style.fontSize = savedFontSize + 'px';
@@ -99,13 +104,76 @@ class RealtimeTranslationModule {
     }
 
     /**
-     * 번역 오류 처리
+     * Display original text immediately (concurrent with translation request)
+     */
+    addTranslationPlaceholder(originalText, resultId) {
+        const elements = this.ui.getElements();
+        
+        const resultDiv = document.createElement('div');
+        resultDiv.className = 'result-item translation-result';
+        resultDiv.setAttribute('data-result-id', resultId);
+        
+        const textSpan = document.createElement('span');
+        textSpan.className = 'translation-text';
+        textSpan.textContent = '번역 중...';
+        textSpan.setAttribute('data-translation-for', resultId);
+        
+        // Display original text (smaller font)
+        const originalSpan = document.createElement('div');
+        originalSpan.className = 'original-text';
+        originalSpan.style.fontSize = '0.8em';
+        originalSpan.style.color = '#666';
+        originalSpan.style.marginBottom = '4px';
+        originalSpan.textContent = originalText;
+        
+        // Apply currently saved font size
+        const savedFontSize = localStorage.getItem('fontSize');
+        if (savedFontSize) {
+            textSpan.style.fontSize = savedFontSize + 'px';
+        }
+        
+        const copyBtn = document.createElement('button');
+        copyBtn.className = 'copy-btn';
+        copyBtn.textContent = '복사';
+        copyBtn.disabled = true; // Disabled until translation completes
+        
+        resultDiv.appendChild(originalSpan);
+        resultDiv.appendChild(textSpan);
+        resultDiv.appendChild(copyBtn);
+        
+        elements.realtimeTranslations.appendChild(resultDiv);
+        elements.realtimeTranslations.scrollTop = elements.realtimeTranslations.scrollHeight;
+    }
+
+    /**
+     * Update when translation completes
+     */
+    updateTranslationResult(resultId, translatedText) {
+        const resultDiv = document.querySelector(`[data-result-id="${resultId}"]`);
+        if (resultDiv) {
+            const textSpan = resultDiv.querySelector('.translation-text');
+            const copyBtn = resultDiv.querySelector('.copy-btn');
+            
+            textSpan.textContent = translatedText;
+            copyBtn.disabled = false;
+            copyBtn.onclick = () => this.ui.copyToClipboard(translatedText, copyBtn);
+            
+            // Completion animation
+            resultDiv.style.backgroundColor = '#e8f5e8';
+            setTimeout(() => {
+                resultDiv.style.backgroundColor = '';
+            }, 1000);
+        }
+    }
+
+    /**
+     * Handle translation errors
      */
     handleTranslationError(errorMessage) {
         this.hasError = true;
         this.isEnabled = false;
         
-        // 오류 메시지 표시
+        // Display error message
         this.addErrorMessage(errorMessage);
         this.ui.updateTranslationProgress('번역 오류 발생');
         
@@ -113,7 +181,7 @@ class RealtimeTranslationModule {
     }
 
     /**
-     * 오류 메시지를 UI에 추가
+     * Add error message to UI
      */
     addErrorMessage(errorMessage) {
         const elements = this.ui.getElements();
@@ -131,7 +199,7 @@ class RealtimeTranslationModule {
     }
 
     /**
-     * 번역 결과 초기화 (Reset 시에만 호출)
+     * Clear translation results (called only on Reset)
      */
     clearTranslations() {
         const elements = this.ui.getElements();
@@ -141,7 +209,7 @@ class RealtimeTranslationModule {
     }
 
     /**
-     * 현재 상태 반환
+     * Return current status
      */
     getStatus() {
         return {
@@ -152,7 +220,7 @@ class RealtimeTranslationModule {
     }
 
     /**
-     * 초기화
+     * Reset/initialize
      */
     reset() {
         this.isEnabled = false;
@@ -161,5 +229,5 @@ class RealtimeTranslationModule {
     }
 }
 
-// 모듈 내보내기
+// Export module
 window.RealtimeTranslationModule = RealtimeTranslationModule;
