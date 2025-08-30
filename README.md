@@ -15,6 +15,7 @@ A web application for real-time speech recognition and translation using Assembl
 - **Live Transcription**: Real-time interim and final transcript display
 - **Text Selection Translation**: Translate any selected text on the page
 - **Interactive Result Navigation**: Click-to-scroll linking between speech recognition and translation results
+- **Note Panel**: Store the original and translation pairs and download as a file
 
 ### Technical Highlights
 - **High Accuracy**: >91% speech recognition accuracy with AssemblyAI
@@ -170,12 +171,16 @@ assets/
 │   ├── modules/           # Feature modules
 │   │   ├── ui.js         # UI management and navigation
 │   │   ├── realtimeTranslation.js  # Translation handling
-│   │   └── speechRecognition.js   # AssemblyAI integration
+│   │   ├── speechRecognition.js   # AssemblyAI integration
+│   │   ├── notePanel.js  # Note management system
+│   │   ├── noteStorage.js # Local storage operations
+│   │   └── noteInteraction.js # Hover interactions
 │   ├── utils/            # Utility functions
 │   └── app.js           # Main application entry
 ├── css/
 │   ├── styles.css        # Core styling
-│   └── highlight-effects.css  # Interactive animations
+│   ├── highlight-effects.css  # Interactive animations
+│   └── note-panel.css    # Note panel styling
 └── ...
 
 netlify/functions/    # Serverless backend
@@ -185,7 +190,12 @@ docs/                # Documentation and analysis
 
 ## Version History
 
-### v2.1 (Current)
+### v2.2 (Current)
+- **Note Management System**: Hover-to-save functionality with sliding panel interface
+- **Local Storage**: Persistent note storage with search, export (JSON/TXT), and management features
+- **Enhanced User Experience**: Pin button overlays and smooth animations
+
+### v2.1
 - **Interactive Result Navigation**: Click-to-scroll linking between speech recognition and translation results
 - **Visual Feedback**: Animations and hover effects for better interaction
 - **Responsive Navigation**: Adjusts scroll position based on desktop/mobile layout
