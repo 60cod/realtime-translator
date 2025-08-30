@@ -152,7 +152,7 @@
 /* 노트 아이템 */
 .note-item {
     background: #374151;
-    border-radius: 12px;
+    border-radius: 8px;
     margin-bottom: 16px;
     overflow: hidden;
     transition: all 0.3s ease;
@@ -166,12 +166,12 @@
 }
 
 .note-content {
-    padding: 16px;
+    padding: 7px 16px;
 }
 
 .note-original,
 .note-translation {
-    margin-bottom: 8px;
+    margin-bottom: 1px;
     line-height: 1.5;
 }
 
@@ -202,7 +202,7 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 12px 16px;
+    padding: 1px 16px;
     background: rgba(0, 0, 0, 0.2);
     border-top: 1px solid #4b5563;
 }
@@ -220,7 +220,7 @@
 .note-action-btn {
     background: none;
     border: none;
-    padding: 6px 8px;
+    padding: 3px 1px;
     border-radius: 4px;
     cursor: pointer;
     font-size: 14px;
@@ -233,12 +233,8 @@
     background: #4b5563;
 }
 
-.copy-note-btn:hover {
-    background: #1d4ed8;
-}
-
-.delete-note-btn:hover {
-    background: #dc2626;
+.copy-note-btn:hover, .delete-note-btn:hover {
+    background: rgb(0, 0, 0, 0.3);
 }
 
 /* 빈 노트 상태 */
@@ -401,11 +397,11 @@
     }
     
     .note-content {
-        padding: 12px;
+        padding: 7px 12px;
     }
     
     .note-footer {
-        padding: 10px 12px;
+        padding: 3px 12px;
     }
 }
 

@@ -201,7 +201,7 @@ class NotePanelModule {
             <div class="note-item" data-note-id="${note.id}">
                 <div class="note-content">
                     <div class="note-original">
-                        <strong>원문:</strong> ${this.escapeHtml(note.original)}
+                        ${this.escapeHtml(note.original)}
                     </div>
                     <div class="note-translation">
                         <strong>번역:</strong> ${this.escapeHtml(note.translation)}
@@ -307,7 +307,7 @@ class NotePanelModule {
         notes.forEach((note, index) => {
             const date = new Date(note.timestamp).toLocaleString('ko-KR');
             textContent += `${index + 1}. ${date}\n`;
-            textContent += `원문: ${note.original}\n`;
+            textContent += `${note.original}\n`;
             textContent += `번역: ${note.translation}\n`;
             textContent += '-'.repeat(30) + '\n\n';
         });
@@ -363,7 +363,7 @@ class NotePanelModule {
         const note = this.noteStorage.getNote(noteId);
         if (!note) return;
 
-        const copyText = `원문: ${note.original}\n번역: ${note.translation}`;
+        const copyText = `${note.original}\n번역: ${note.translation}`;
         
         navigator.clipboard.writeText(copyText).then(() => {
             // 복사 성공 피드백

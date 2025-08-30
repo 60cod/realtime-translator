@@ -69,10 +69,10 @@ class DeeplClient {
                 const isRetryable = this.isRetryableError(error);
                 
                 if (isRetryable) {
-                    // On 429/500+ error: put batch back to front of queue + 2 second delay
+                    // On 429/500+ error: put batch back to front of queue + 1 second delay
                     this.pendingQueue.unshift(...batch);
                     console.log(`⏳ ${error.message} - retrying batch of ${batch.length} items in 2 seconds...`);
-                    await this.delay(2000); // 2 second delay
+                    await this.delay(1000); // 1 second delay
                     continue;
                 } else {
                     // Other errors: reject all requests in batch
@@ -119,7 +119,6 @@ class DeeplClient {
         }
 
         const result = await response.json();
-        console.log(`✅ DeepL batch translation completed (${batch.length} items)`);
         return result;
     }
 

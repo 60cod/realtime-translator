@@ -30,6 +30,10 @@
     overflow-x: hidden;
 }
 
+#finalResults, #realtimeTranslations {
+    max-height: 550px;
+}
+
 .result-item {
     display: flex;
     justify-content: space-between;
@@ -40,7 +44,7 @@
     margin-bottom: 0.5rem;
 }
 
-.result-text {
+.result-text, .translation-text {
     flex: 1;
     padding: 2px 4px;
 }
