@@ -5,12 +5,10 @@
 class DeeplClient {
     constructor() {
         this.apiUrl = 'https://api-free.deepl.com/v2/translate';
-        this.isProcessing = false;
-        this.requestQueue = []; // Simple FIFO queue
     }
 
     /**
-     * Translate text using proxy translation endpoint with queue system
+     * Translate text using proxy translation endpoint
      * @param {Array<string>} text - Array of text to translate
      * @param {string} target_lang - Target language (default: 'KO')
      * @param {string} source_lang - Source language (optional, auto-detect)
@@ -21,94 +19,39 @@ class DeeplClient {
             throw new Error('Text is required and must be an array');
         }
 
-        return new Promise((resolve, reject) => {
-            // Add to queue
-            this.requestQueue.push({
-                text, target_lang, source_lang, resolve, reject,
-                id: Date.now() + Math.random()
-            });
-            
-            // Start processing
-            this.processQueue();
-        });
-    }
+        try {
+            // Use translation proxy to avoid CORS issues
+            const body = {
+                text: text,
+                target_lang: target_lang
+            };
 
-    /**
-     * Process queued translation requests sequentially
-     * @private
-     */
-    async processQueue() {
-        if (this.isProcessing || this.requestQueue.length === 0) {
-            return;
-        }
-
-        this.isProcessing = true;
-
-        while (this.requestQueue.length > 0) {
-            const request = this.requestQueue.shift();
-            
-            try {
-                const result = await this.executeTranslation(request);
-                request.resolve(result);
-                
-                // Short delay on success (prevent API overload)
-                await this.delay(200);
-                
-            } catch (error) {
-                if (error.message.includes('429') || error.message.includes('Too many requests')) {
-                    // On 429 error: add back to front of queue + 2 second delay
-                    this.requestQueue.unshift(request);
-                    console.log('⏳ 429 error detected, retrying in 2 seconds...');
-                    await this.delay(2000); // 2 second delay
-                    continue;
-                } else {
-                    request.reject(error);
-                }
+            if (source_lang) {
+                body.source_lang = source_lang;
             }
+
+            const response = await fetch('https://api-proxy.ygna.blog/api/translate', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Origin': window.location.origin,
+                    'Referer': window.location.href
+                },
+                body: JSON.stringify(body)
+            });
+
+            if (!response.ok) {
+                throw new Error(`Translation request failed: ${response.status}`);
+            }
+
+            const result = await response.json();
+            console.log('✅ DeepL translation completed via proxy');
+            return result;
+
+        } catch (error) {
+            console.error('DeepL translation error:', error);
+            throw error;
         }
-
-        this.isProcessing = false;
-    }
-
-    /**
-     * Execute single translation request
-     * @private
-     */
-    async executeTranslation({text, target_lang, source_lang}) {
-        const body = {
-            text: text,
-            target_lang: target_lang
-        };
-
-        if (source_lang) {
-            body.source_lang = source_lang;
-        }
-
-        const response = await fetch('https://api-proxy.ygna.blog/api/translate', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Origin': window.location.origin,
-                'Referer': window.location.href
-            },
-            body: JSON.stringify(body)
-        });
-
-        if (!response.ok) {
-            throw new Error(`Translation request failed: ${response.status}`);
-        }
-
-        const result = await response.json();
-        console.log('✅ DeepL translation completed via proxy');
-        return result;
-    }
-
-    /**
-     * Delay utility function
-     * @private
-     */
-    delay(ms) {
-        return new Promise(resolve => setTimeout(resolve, ms));
     }
 
     /**
